@@ -1,0 +1,2385 @@
+*{
+margin:0;
+padding:0;
+box-sizing:border-box;
+font-family:Inter,Segoe UI,Tahoma,sans-serif;
+}
+
+body{
+background:#eef3f9;
+color:#1f2937;
+}
+
+.layout{
+display:flex;
+min-height:100vh;
+width:100%;
+}
+.sidebar{
+width:260px;
+background:linear-gradient(180deg,#0f172a,#16213e);
+padding:30px 20px;
+display:flex;
+flex-direction:column;
+color:white;
+}
+
+.logo{
+font-size:28px;
+font-weight:700;
+margin-bottom:40px;
+}
+
+.sidebar nav{
+display:flex;
+flex-direction:column;
+gap:12px;
+}
+
+.sidebar button{
+background:transparent;
+border:none;
+color:white;
+padding:14px;
+border-radius:14px;
+text-align:left;
+font-size:16px;
+cursor:pointer;
+transition:.3s;
+}
+
+.sidebar button:hover{
+background:rgba(255,255,255,.1);
+transform:translateX(5px);
+}
+
+.main{
+flex:1;
+display:flex;
+flex-direction:column;
+}
+
+.topbar{
+height:80px;
+background:white;
+display:flex;
+justify-content:space-between;
+align-items:center;
+padding:0 40px;
+box-shadow:0 2px 15px rgba(0,0,0,.05);
+}
+
+.topbar input{
+width:350px;
+padding:14px 18px;
+border:none;
+border-radius:12px;
+background:#eef2f7;
+font-size:15px;
+outline:none;
+}
+
+.profile{
+display:flex;
+align-items:center;
+gap:12px;
+font-weight:600;
+}
+
+.avatar{
+width:45px;
+height:45px;
+border-radius:50%;
+background:#10b981;
+display:flex;
+justify-content:center;
+align-items:center;
+color:white;
+font-weight:bold;
+font-size:20px;
+}
+
+.hero{
+padding:45px;
+}
+
+.hero h1{
+font-size:38px;
+margin-bottom:10px;
+}
+
+.hero p{
+font-size:18px;
+color:#6b7280;
+}
+.dashboard{
+display:grid;
+grid-template-columns:repeat(4,1fr);
+gap:25px;
+padding:35px;
+}
+
+.card{
+background:white;
+border-radius:20px;
+padding:30px;
+box-shadow:0 10px 25px rgba(0,0,0,.06);
+transition:.3s;
+cursor:pointer;
+}
+
+.card:hover{
+transform:translateY(-8px);
+}
+
+.card h3{
+font-size:16px;
+color:#6b7280;
+margin-bottom:15px;
+}
+
+.card h1{
+font-size:42px;
+color:#0f172a;
+}
+.dashboard{
+    display:grid;
+    grid-template-columns:repeat(auto-fit,minmax(230px,1fr));
+    gap:25px;
+    margin-top:30px;
+}
+
+.stat-card{
+
+    background:#ffffff;
+
+    border-radius:22px;
+
+    padding:28px;
+
+    box-shadow:0 15px 35px rgba(0,0,0,.08);
+
+    transition:.35s;
+
+    position:relative;
+
+    overflow:hidden;
+
+}
+
+.stat-card:hover{
+
+    transform:translateY(-8px);
+
+    box-shadow:0 25px 45px rgba(0,0,0,.12);
+
+}
+
+.stat-icon{
+
+    width:60px;
+
+    height:60px;
+
+    border-radius:18px;
+
+    background:#eef7ef;
+
+    display:flex;
+
+    align-items:center;
+
+    justify-content:center;
+
+    font-size:28px;
+
+}
+
+.stat-info h3{
+
+    font-size:42px;
+
+    margin:20px 0 6px;
+
+    color:#24322d;
+
+}
+
+.stat-info p{
+
+    color:#888;
+
+    font-size:15px;
+
+}
+
+.stat-growth{
+
+    position:absolute;
+
+    top:25px;
+
+    right:25px;
+
+    color:#2eaf5d;
+
+    font-weight:bold;
+
+}
+.topbar{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  padding:20px 10px;
+}
+
+.topbar h2{
+  margin:0;
+  font-size:26px;
+}
+
+.topbar p{
+  margin:5px 0 0;
+  color:#888;
+}
+
+.user{
+  display:flex;
+  align-items:center;
+  gap:10px;
+}
+
+.avatar{
+  width:38px;
+  height:38px;
+  border-radius:50%;
+  background:#2eaf5d;
+  color:white;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-weight:bold;
+}
+.nutrimap-card{
+  margin:35px;
+  background:linear-gradient(135deg,#111827,#1f2937);
+  border-radius:28px;
+  padding:35px;
+  color:white;
+  min-height:520px;
+  box-shadow:0 25px 60px rgba(0,0,0,.18);
+}
+
+.nutrimap-header h2{
+  font-size:32px;
+  margin-bottom:6px;
+}
+
+.nutrimap-header p{
+  color:#cbd5e1;
+}
+
+.body-zone{
+  position:relative;
+  height:420px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+}
+
+.body-figure{
+  width:150px;
+  height:360px;
+  border-radius:80px 80px 45px 45px;
+  background:linear-gradient(180deg,#3b0a14,#111827);
+  box-shadow:0 0 50px rgba(155,28,49,.8);
+  position:relative;
+}
+
+.body-figure::before{
+  content:"";
+  position:absolute;
+  top:-55px;
+  left:50%;
+  transform:translateX(-50%);
+  width:85px;
+  height:85px;
+  border-radius:50%;
+  background:#260610;
+  box-shadow:0 0 35px rgba(220,38,38,.8);
+}
+
+.organ-dot{
+  position:absolute;
+  border:none;
+  background:#ffffff;
+  color:#7B1E2B;
+  padding:10px 16px;
+  border-radius:999px;
+  font-weight:bold;
+  cursor:pointer;
+  box-shadow:0 0 25px rgba(255,255,255,.25);
+  transition:.3s;
+}
+
+.organ-dot:hover{
+  transform:scale(1.12);
+  background:#fecaca;
+}
+
+.brain{ top:55px; }
+.heart{ top:155px; left:38%; }
+.liver{ top:205px; right:36%; }
+.gut{ top:270px; }
+.muscle{ bottom:35px; right:34%; }
+.nutrimap-card{
+  margin:35px;
+  background:white;
+  border-radius:30px;
+  padding:35px;
+  box-shadow:0 20px 50px rgba(0,0,0,.08);
+}
+
+.nutrimap-header h2{
+  font-size:32px;
+  color:#7B1E2B;
+}
+
+.nutrimap-header p{
+  color:#777;
+  margin-top:5px;
+}
+
+.nutrimap-area{
+  position:relative;
+  height:620px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  background:linear-gradient(135deg,#f8fafc,#eef2f7);
+  border-radius:28px;
+  margin-top:25px;
+  overflow:hidden;
+}
+
+.human-svg{
+  height:560px;
+  filter:drop-shadow(0 0 25px rgba(123,30,43,.25));
+}
+
+.body-shape{
+  fill:rgba(123,30,43,.12);
+  stroke:#7B1E2B;
+  stroke-width:3;
+}
+
+.body-limb{
+  fill:none;
+  stroke:#7B1E2B;
+  stroke-width:16;
+  stroke-linecap:round;
+  opacity:.35;
+}
+
+.organ-node{
+  fill:#dc2626;
+  stroke:white;
+  stroke-width:4;
+  cursor:pointer;
+  filter:drop-shadow(0 0 12px rgba(220,38,38,.8));
+  animation:pulse 1.8s infinite;
+}
+
+@keyframes pulse{
+  0%{ transform:scale(1); opacity:.8; }
+  50%{ transform:scale(1.15); opacity:1; }
+  100%{ transform:scale(1); opacity:.8; }
+}
+
+.organ-label{
+  position:absolute;
+  background:white;
+  color:#7B1E2B;
+  padding:10px 16px;
+  border-radius:999px;
+  font-weight:bold;
+  box-shadow:0 10px 25px rgba(0,0,0,.08);
+}
+
+.brain-label{ top:85px; }
+.heart-label{ top:205px; right:38%; }
+.liver-label{ top:260px; left:38%; }
+.gut-label{ top:330px; }
+.muscle-label{ bottom:110px; right:36%; }
+.dashboard-panels{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:25px;
+  margin:0 35px 35px;
+}
+
+.panel{
+  background:white;
+  border-radius:24px;
+  padding:28px;
+  box-shadow:0 15px 35px rgba(0,0,0,.06);
+}
+
+.panel h2{
+  margin-bottom:20px;
+  color:#24322d;
+}
+
+.patient-row,
+.alert{
+  padding:16px;
+  border-radius:16px;
+  background:#f8fafc;
+  margin-bottom:12px;
+}
+
+.patient-row{
+  display:flex;
+  justify-content:space-between;
+}
+
+.patient-row b{
+  color:#7B1E2B;
+}
+
+.alert{
+  color:#374151;
+}
+.patients-module{
+  background:white;
+  margin:0 35px 40px;
+  border-radius:26px;
+  padding:30px;
+  box-shadow:0 18px 40px rgba(0,0,0,.07);
+}
+
+.module-header{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  margin-bottom:25px;
+}
+
+.module-header h2{
+  font-size:28px;
+  color:#24322d;
+}
+
+.module-header p{
+  color:#8a8f98;
+  margin-top:5px;
+}
+
+.primary-btn{
+  background:#7B1E2B;
+  color:white;
+  border:none;
+  padding:14px 22px;
+  border-radius:14px;
+  font-weight:bold;
+  cursor:pointer;
+}
+
+.patients-module table{
+  width:100%;
+  border-collapse:collapse;
+}
+
+.patients-module th{
+  text-align:left;
+  color:#8a8f98;
+  font-size:14px;
+  padding:14px;
+  border-bottom:1px solid #eef2f7;
+}
+
+.patients-module td{
+  padding:18px 14px;
+  border-bottom:1px solid #f1f5f9;
+  color:#374151;
+}
+
+.risk{
+  padding:7px 12px;
+  border-radius:999px;
+  font-size:13px;
+  font-weight:bold;
+}
+
+.risk.high{
+  color:#b91c1c;
+  background:#fee2e2;
+}
+
+.risk.medium{
+  color:#b45309;
+  background:#fef3c7;
+}
+
+.risk.low{
+  color:#047857;
+  background:#d1fae5;
+}
+
+.view-btn{
+  border:none;
+  background:#eef2f7;
+  color:#24322d;
+  padding:10px 14px;
+  border-radius:12px;
+  cursor:pointer;
+}
+.workspace{
+  background:white;
+  margin:0 35px 40px;
+  border-radius:30px;
+  padding:35px;
+  box-shadow:0 20px 50px rgba(0,0,0,.08);
+}
+
+.patient-header{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  margin-bottom:25px;
+}
+
+.patient-header h1{
+  font-size:34px;
+  color:#24322d;
+}
+
+.patient-header p{
+  color:#8a8f98;
+  margin-top:6px;
+}
+
+.status{
+  padding:10px 18px;
+  border-radius:999px;
+  font-weight:bold;
+}
+
+.stable{
+  color:#047857;
+  background:#d1fae5;
+}
+
+.tabs{
+  display:flex;
+  gap:12px;
+  margin-bottom:28px;
+  border-bottom:1px solid #eef2f7;
+  padding-bottom:18px;
+}
+
+.tabs button{
+  border:none;
+  background:#f8fafc;
+  padding:12px 18px;
+  border-radius:14px;
+  cursor:pointer;
+  color:#374151;
+  font-weight:600;
+}
+
+.tabs button:hover{
+  background:#7B1E2B;
+  color:white;
+}
+
+.workspace-grid{
+  display:grid;
+  grid-template-columns:1.4fr 1fr;
+  gap:22px;
+}
+
+.workspace-card{
+  background:#f8fafc;
+  border-radius:24px;
+  padding:28px;
+  min-height:180px;
+}
+
+.workspace-card.large{
+  min-height:390px;
+  grid-row:span 2;
+}
+
+.workspace-card h2{
+  color:#7B1E2B;
+  margin-bottom:15px;
+}
+
+.workspace-card p{
+  color:#374151;
+  margin-bottom:10px;
+}
+.patients-page{
+  padding:35px;
+}
+
+.page-header{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  margin-bottom:24px;
+}
+
+.page-header h1{
+  font-size:36px;
+  color:#24322d;
+}
+
+.page-header p{
+  color:#8a8f98;
+  margin-top:6px;
+}
+
+.add-btn{
+  background:#7B1E2B;
+  color:white;
+  border:none;
+  padding:14px 22px;
+  border-radius:16px;
+  font-weight:bold;
+  cursor:pointer;
+}
+
+.search-box{
+  margin-bottom:28px;
+}
+
+.search-box input{
+  width:100%;
+  padding:16px 20px;
+  border:none;
+  border-radius:18px;
+  background:white;
+  box-shadow:0 12px 30px rgba(0,0,0,.06);
+  outline:none;
+  font-size:16px;
+}
+
+.patients-grid{
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(260px,1fr));
+  gap:24px;
+}
+
+.patient-card{
+  background:white;
+  border-radius:28px;
+  padding:28px;
+  box-shadow:0 18px 45px rgba(0,0,0,.07);
+  transition:.3s;
+}
+
+.patient-card:hover{
+  transform:translateY(-8px);
+  box-shadow:0 28px 60px rgba(0,0,0,.12);
+}
+
+.patient-avatar{
+  width:58px;
+  height:58px;
+  border-radius:20px;
+  background:#f3e8eb;
+  color:#7B1E2B;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-size:26px;
+  font-weight:bold;
+  margin-bottom:18px;
+}
+
+.patient-card h2{
+  color:#24322d;
+  margin-bottom:6px;
+}
+
+.patient-card p{
+  color:#6b7280;
+  margin-bottom:10px;
+}
+
+.diagnosis{
+  font-weight:600;
+  color:#7B1E2B !important;
+}
+
+.badge{
+  display:inline-block;
+  padding:8px 14px;
+  border-radius:999px;
+  font-size:13px;
+  font-weight:bold;
+  margin:8px 0 18px;
+}
+
+.green{
+  background:#d1fae5;
+  color:#047857;
+}
+
+.yellow{
+  background:#fef3c7;
+  color:#b45309;
+}
+
+.red{
+  background:#fee2e2;
+  color:#b91c1c;
+}
+
+.score-box{
+  background:#f8fafc;
+  border-radius:18px;
+  padding:16px;
+  margin-bottom:14px;
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+}
+
+.score-box span{
+  color:#8a8f98;
+  font-size:14px;
+}
+
+.score-box strong{
+  color:#24322d;
+  font-size:22px;
+}
+
+.patient-note{
+  background:#fff7ed;
+  color:#c2410c !important;
+  padding:10px 12px;
+  border-radius:14px;
+  font-weight:600;
+}
+
+.open-btn{
+  width:100%;
+  margin-top:16px;
+  padding:14px;
+  border:none;
+  border-radius:16px;
+  background:#7B1E2B;
+  color:white;
+  font-weight:bold;
+  cursor:pointer;
+}
+.patients-grid{
+    display:grid;
+    grid-template-columns:repeat(auto-fit,minmax(320px,1fr));
+    gap:25px;
+    margin-top:30px;
+}
+
+.patient-card{
+    background:#fff;
+    border-radius:24px;
+    padding:25px;
+    box-shadow:0 10px 30px rgba(0,0,0,.08);
+    transition:.3s;
+}
+
+.patient-card:hover{
+    transform:translateY(-8px);
+}
+
+.patient-avatar{
+    width:60px;
+    height:60px;
+    border-radius:50%;
+    background:#7B1E2B;
+    color:white;
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    font-size:24px;
+    font-weight:bold;
+    margin-bottom:15px;
+}
+
+.open-btn{
+    width:100%;
+    padding:12px;
+    margin-top:20px;
+    border:none;
+    border-radius:12px;
+    background:#7B1E2B;
+    color:white;
+    cursor:pointer;
+    font-weight:bold;
+}
+
+.score-box{
+    display:flex;
+    justify-content:space-between;
+    margin-top:15px;
+    padding:10px;
+    border-radius:12px;
+    background:#F7F8FA;
+}
+
+.green{
+    color:#0f9d58;
+}
+
+.yellow{
+    color:#e6a700;
+}
+
+.red{
+    color:#d93025;
+}
+.workspace-v2{
+  padding:30px;
+}
+
+.patient-hero{
+  background:white;
+  border-radius:24px;
+  padding:28px;
+  display:flex;
+  justify-content:space-between;
+  gap:25px;
+  box-shadow:0 15px 35px rgba(0,0,0,.06);
+}
+
+.patient-id{
+  display:flex;
+  align-items:center;
+  gap:20px;
+}
+
+.big-avatar{
+  width:82px;
+  height:82px;
+  border-radius:50%;
+  background:#7B1E2B;
+  color:white;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-weight:bold;
+  font-size:28px;
+}
+
+.hero-metrics{
+  display:grid;
+  grid-template-columns:repeat(5,1fr);
+  gap:18px;
+  flex:1;
+}
+
+.metric{
+  border-left:1px solid #eef2f7;
+  padding-left:16px;
+}
+
+.green-text{ color:#079455; }
+.orange-text{ color:#ea7400; }
+.red-text{ color:#dc2626; }
+
+.workspace-nav{
+  display:flex;
+  gap:18px;
+  padding:22px 5px;
+  border-bottom:1px solid #e5e7eb;
+}
+
+.workspace-nav button{
+  border:none;
+  background:transparent;
+  padding:12px 16px;
+  font-weight:600;
+  cursor:pointer;
+}
+
+.workspace-nav .active{
+  color:#7B1E2B;
+  border-bottom:3px solid #7B1E2B;
+}
+
+.workspace-main{
+  display:grid;
+  grid-template-columns:2fr 1fr;
+  gap:25px;
+  margin-top:25px;
+}
+
+.nutrimap-panel,
+.info-panel{
+  background:white;
+  border-radius:24px;
+  padding:28px;
+  box-shadow:0 15px 35px rgba(0,0,0,.06);
+}
+
+.map-placeholder{
+  height:420px;
+  margin-top:20px;
+  border-radius:22px;
+  background:linear-gradient(135deg,#f8fafc,#eef2f7);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  color:#9ca3af;
+  font-size:22px;
+  font-weight:bold;
+}
+
+.side-panels{
+  display:flex;
+  flex-direction:column;
+  gap:20px;
+}
+
+.info-panel p{
+  padding:12px 0;
+  border-bottom:1px solid #f1f5f9;
+}
+.patient-hero{
+  align-items:center;
+}
+
+.patient-id{
+  flex:1.4;
+}
+
+.patient-id h1{
+  font-size:34px;
+  line-height:1.1;
+  margin:0;
+}
+
+.patient-id p{
+  font-size:15px;
+  color:#6b7280;
+  margin-top:8px;
+}
+
+.patient-id span{
+  display:block;
+  margin-top:8px;
+  color:#1f2937;
+}
+
+.hero-metrics{
+  flex:2;
+}
+
+.metric h2{
+  font-size:24px;
+  line-height:1.2;
+}
+.body-map-v2{
+  height:430px;
+  margin-top:22px;
+  border-radius:22px;
+  background:linear-gradient(135deg,#f8fafc,#eef2f7);
+  position:relative;
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  overflow:hidden;
+}
+
+.body-silhouette{
+  position:relative;
+  width:190px;
+  height:360px;
+}
+
+.head{
+  position:absolute;
+  top:0;
+  left:50%;
+  transform:translateX(-50%);
+  width:70px;
+  height:70px;
+  border-radius:50%;
+  background:rgba(123,30,43,.18);
+  border:2px solid rgba(123,30,43,.35);
+}
+
+.torso{
+  position:absolute;
+  top:78px;
+  left:50%;
+  transform:translateX(-50%);
+  width:110px;
+  height:155px;
+  border-radius:55px 55px 35px 35px;
+  background:rgba(123,30,43,.14);
+  border:2px solid rgba(123,30,43,.35);
+}
+
+.arm{
+  position:absolute;
+  top:100px;
+  width:28px;
+  height:165px;
+  border-radius:999px;
+  background:rgba(123,30,43,.12);
+  border:2px solid rgba(123,30,43,.28);
+}
+
+.arm.left{
+  left:10px;
+  transform:rotate(12deg);
+}
+
+.arm.right{
+  right:10px;
+  transform:rotate(-12deg);
+}
+
+.leg{
+  position:absolute;
+  top:230px;
+  width:36px;
+  height:130px;
+  border-radius:999px;
+  background:rgba(123,30,43,.12);
+  border:2px solid rgba(123,30,43,.28);
+}
+
+.leg.left{
+  left:55px;
+}
+
+.leg.right{
+  right:55px;
+}
+
+.organ-point{
+  position:absolute;
+  border:none;
+  border-radius:999px;
+  padding:10px 16px;
+  background:white;
+  color:#7B1E2B;
+  font-weight:700;
+  box-shadow:0 12px 28px rgba(0,0,0,.12);
+  cursor:pointer;
+}
+
+.brain-point{
+  top:45px;
+  left:90px;
+}
+
+.heart-point{
+  top:150px;
+  right:90px;
+}
+
+.gut-point{
+  top:235px;
+  left:90px;
+}
+
+.muscle-point{
+  bottom:70px;
+  right:85px;
+}
+.svg-body-area{
+  height:430px;
+  margin-top:22px;
+  border-radius:24px;
+  background:linear-gradient(135deg,#f8fafc,#eef2f7);
+  position:relative;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  overflow:hidden;
+}
+
+.human-svg{
+  height:390px;
+  filter:drop-shadow(0 0 25px rgba(123,30,43,.25));
+}
+
+.svg-body{
+  fill:rgba(123,30,43,.13);
+  stroke:rgba(123,30,43,.45);
+  stroke-width:3;
+}
+
+.svg-limb{
+  fill:none;
+  stroke:rgba(123,30,43,.28);
+  stroke-width:18;
+  stroke-linecap:round;
+}
+
+.map-dot{
+  position:absolute;
+  border:none;
+  background:white;
+  color:#7B1E2B;
+  padding:10px 16px;
+  border-radius:999px;
+  font-weight:800;
+  cursor:pointer;
+  box-shadow:0 12px 30px rgba(0,0,0,.15);
+  transition:.25s;
+}
+
+.map-dot:hover{
+  transform:scale(1.08);
+  background:#7B1E2B;
+  color:white;
+}
+
+.brain-dot{ top:55px; }
+.mouth-dot{ top:115px; right:160px; }
+.heart-dot{ top:170px; left:150px; }
+.gut-dot{ top:270px; }
+.map-dot{
+  width:22px;
+  height:22px;
+  padding:0;
+  border-radius:50%;
+  font-size:0;
+  background:#7B1E2B;
+  border:4px solid white;
+  box-shadow:0 0 0 8px rgba(123,30,43,.12),
+             0 0 25px rgba(123,30,43,.55);
+}
+
+.map-dot::after{
+  content:attr(data-label);
+  position:absolute;
+  top:28px;
+  left:50%;
+  transform:translateX(-50%);
+  font-size:12px;
+  color:#7B1E2B;
+  background:white;
+  padding:6px 10px;
+  border-radius:999px;
+  box-shadow:0 8px 18px rgba(0,0,0,.08);
+  white-space:nowrap;
+}
+
+.map-dot:hover{
+  transform:scale(1.2);
+  background:#dc2626;
+}
+.map-dot{
+  width:22px;
+  height:22px;
+  padding:0;
+  border-radius:50%;
+  font-size:0;
+  background:#7B1E2B;
+  border:4px solid white;
+  box-shadow:0 0 0 8px rgba(123,30,43,.12),
+             0 0 25px rgba(123,30,43,.55);
+}
+
+.map-dot::after{
+  content:attr(data-label);
+  position:absolute;
+  top:28px;
+  left:50%;
+  transform:translateX(-50%);
+  font-size:12px;
+  color:#7B1E2B;
+  background:white;
+  padding:6px 10px;
+  border-radius:999px;
+  box-shadow:0 8px 18px rgba(0,0,0,.08);
+  white-space:nowrap;
+}
+
+.map-dot:hover{
+  transform:scale(1.2);
+  background:#dc2626;
+}
+.info-panel{
+  border:1px solid #eef2f7;
+}
+
+.info-panel h2{
+  color:#7B1E2B;
+  margin-bottom:18px;
+}
+
+.info-panel p{
+  background:#f8fafc;
+  padding:12px 14px;
+  border-radius:14px;
+  border-bottom:none;
+  margin-bottom:10px;
+}
+
+.info-panel:nth-child(2){
+  background:linear-gradient(135deg,#fff,#fff7f7);
+}
+.map-dot.active{
+    background:#dc2626;
+    transform:scale(1.35);
+    box-shadow:
+      0 0 0 10px rgba(220,38,38,.18),
+      0 0 30px rgba(220,38,38,.65);
+    animation:pulse 1.6s infinite;
+}
+
+@keyframes pulse{
+
+0%{
+    box-shadow:
+      0 0 0 0 rgba(220,38,38,.45),
+      0 0 30px rgba(220,38,38,.65);
+}
+
+70%{
+    box-shadow:
+      0 0 0 16px rgba(220,38,38,0),
+      0 0 30px rgba(220,38,38,.65);
+}
+
+100%{
+    box-shadow:
+      0 0 0 0 rgba(220,38,38,0),
+      0 0 30px rgba(220,38,38,.65);
+}
+
+}
+.main{
+  height:100vh;
+  overflow-y:auto;
+}
+.liver-dot{
+  top:210px;
+  right:145px;
+}
+
+.bone-dot{
+  bottom:65px;
+  left:145px;
+}
+.human-svg{
+  height:410px;
+  filter:
+    drop-shadow(0 0 18px rgba(123,30,43,.45))
+    drop-shadow(0 20px 35px rgba(0,0,0,.18));
+}
+
+.svg-body{
+  fill:#16171b !important;
+  stroke:#7B1E2B !important;
+  stroke-width:3;
+}
+
+.svg-limb{
+  stroke:#16171b !important;
+  stroke-width:20;
+  stroke-linecap:round;
+  filter:drop-shadow(0 0 10px rgba(123,30,43,.35));
+}
+
+.svg-body-area{
+  background:
+    radial-gradient(circle at center, rgba(123,30,43,.14), transparent 45%),
+    linear-gradient(135deg,#f8fafc,#eef2f7);
+}
+.map-dot{
+  background:#7B1E2B !important;
+  border:4px solid #ffffff;
+}
+
+.map-dot.active{
+  background:#dc2626 !important;
+  box-shadow:
+    0 0 0 12px rgba(220,38,38,.18),
+    0 0 35px rgba(220,38,38,.75);
+}
+.nutrimap-title{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  gap:20px;
+}
+
+.view-toggle{
+  display:flex;
+  background:#f8fafc;
+  padding:6px;
+  border-radius:16px;
+  gap:6px;
+}
+
+.view-toggle button{
+  border:none;
+  padding:10px 16px;
+  border-radius:12px;
+  cursor:pointer;
+  font-weight:700;
+  color:#6b7280;
+  background:transparent;
+}
+
+.view-toggle .active-view{
+  background:#7B1E2B;
+  color:white;
+}
+
+.view-3d-placeholder{
+  height:430px;
+  margin-top:22px;
+  border-radius:24px;
+  background:
+    radial-gradient(circle at center, rgba(123,30,43,.18), transparent 45%),
+    linear-gradient(135deg,#111827,#1f2937);
+  color:white;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  text-align:center;
+  overflow:hidden;
+}
+
+.orbital-body{
+  position:relative;
+  width:160px;
+  height:160px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  margin-bottom:25px;
+}
+
+.orbit{
+  position:absolute;
+  width:160px;
+  height:160px;
+  border:2px solid rgba(255,255,255,.2);
+  border-radius:50%;
+  animation:spin 6s linear infinite;
+}
+
+.orbit::before{
+  content:"";
+  position:absolute;
+  top:-6px;
+  left:50%;
+  width:12px;
+  height:12px;
+  background:#dc2626;
+  border-radius:50%;
+  box-shadow:0 0 25px #dc2626;
+}
+
+.core-body{
+  width:95px;
+  height:130px;
+  border-radius:50px 50px 35px 35px;
+  background:#0b0f19;
+  border:2px solid rgba(220,38,38,.7);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-weight:bold;
+  color:#fca5a5;
+  box-shadow:0 0 40px rgba(220,38,38,.45);
+}
+
+@keyframes spin{
+  from{ transform:rotate(0deg); }
+  to{ transform:rotate(360deg); }
+}
+.assessment-page{
+  margin-top:25px;
+  background:white;
+  border-radius:26px;
+  padding:30px;
+  box-shadow:0 15px 35px rgba(0,0,0,.06);
+}
+
+.assessment-header h2{
+  color:#24322d;
+  font-size:30px;
+}
+
+.assessment-header p{
+  color:#8a8f98;
+  margin-top:6px;
+}
+
+.assessment-grid{
+  display:grid;
+  grid-template-columns:repeat(2,1fr);
+  gap:22px;
+  margin-top:25px;
+}
+
+.assessment-card{
+  background:#f8fafc;
+  border-radius:24px;
+  padding:26px;
+  transition:.3s;
+}
+
+.assessment-card:hover{
+  transform:translateY(-6px);
+  box-shadow:0 18px 40px rgba(0,0,0,.08);
+}
+
+.assessment-letter{
+  width:44px;
+  height:44px;
+  border-radius:14px;
+  background:#7B1E2B;
+  color:white;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-weight:bold;
+  margin-bottom:18px;
+}
+
+.assessment-card h3{
+  color:#24322d;
+  margin-bottom:10px;
+}
+
+.assessment-card p{
+  color:#6b7280;
+  margin-bottom:18px;
+}
+
+.assessment-card button{
+  border:none;
+  background:#7B1E2B;
+  color:white;
+  padding:12px 18px;
+  border-radius:14px;
+  cursor:pointer;
+  font-weight:bold;
+}
+/* ===== Hospital-grade UI Override ===== */
+
+body{
+  background:#eef3f8;
+  color:#172033;
+}
+
+.sidebar{
+  background:#07111f !important;
+  border-right:1px solid #111827;
+}
+
+.sidebar h2{
+  font-size:22px;
+  color:#e5e7eb;
+}
+
+.sidebar button{
+  background:transparent !important;
+  color:#cbd5e1 !important;
+  border-radius:8px !important;
+  font-size:15px;
+  padding:13px 16px !important;
+}
+
+.sidebar button:hover{
+  background:#132033 !important;
+  color:white !important;
+}
+
+.main{
+  background:#eef3f8;
+}
+
+.topbar{
+  background:white !important;
+  border-bottom:1px solid #dbe3ec;
+  box-shadow:none !important;
+}
+
+.patient-hero,
+.nutrimap-panel,
+.info-panel,
+.assessment-page{
+  border:1px solid #dbe3ec;
+  box-shadow:none !important;
+  border-radius:14px !important;
+}
+
+.patient-hero{
+  padding:22px !important;
+}
+
+.big-avatar{
+  border-radius:10px !important;
+  background:#8B1E2D !important;
+}
+
+.workspace-nav{
+  background:white;
+  border:1px solid #dbe3ec;
+  border-radius:12px;
+  padding:8px !important;
+  margin-top:18px;
+}
+
+.workspace-nav button{
+  font-size:14px;
+  border-radius:8px;
+}
+
+.workspace-nav .active{
+  background:#8B1E2D !important;
+  color:white !important;
+  border-bottom:none !important;
+}
+
+.assessment-card{
+  border:1px solid #dbe3ec;
+  background:white !important;
+  text-align:left;
+}
+
+.assessment-card.selected{
+  border:2px solid #8B1E2D;
+  background:#fff7f8 !important;
+}
+
+.assessment-letter{
+  background:#8B1E2D !important;
+  border-radius:8px !important;
+}
+
+.pes-btn,
+.assessment-card button,
+.open-btn,
+.add-btn{
+  background:#8B1E2D !important;
+  border-radius:8px !important;
+}
+
+.info-panel p,
+.assessment-list p{
+  background:#f6f8fb !important;
+  border:1px solid #e5eaf0;
+  border-radius:8px !important;
+}
+
+.svg-body-area,
+.three-box{
+  background:#f8fafc !important;
+  border:1px solid #dbe3ec;
+}
+.assessment-grid{
+  grid-template-columns:repeat(4,1fr) !important;
+}
+
+.assessment-card{
+  min-height:180px;
+}
+
+.assessment-detail{
+  margin-top:24px;
+  background:white;
+  border:1px solid #dbe3ec;
+  border-radius:14px;
+  padding:24px;
+}
+
+.assessment-list{
+  margin-top:16px;
+  display:grid;
+  grid-template-columns:repeat(2,1fr);
+  gap:12px;
+}
+
+.assessment-card small{
+  display:inline-block;
+  margin-top:12px;
+  color:#8B1E2D;
+  font-weight:700;
+}
+.pes-box{
+  margin-top:24px;
+  background:#fff7f8;
+  border:1px solid #f1c8d0;
+  border-left:5px solid #8B1E2D;
+  border-radius:14px;
+  padding:24px;
+}
+
+.pes-box h3{
+  color:#8B1E2D;
+  margin-bottom:12px;
+}
+
+.pes-box h4{
+  color:#172033;
+  margin-top:18px;
+  margin-bottom:8px;
+}
+
+.pes-box p{
+  color:#374151;
+  line-height:1.7;
+}
+.data-editor{
+  background:white;
+  border:1px solid #dbe3ec;
+  border-radius:14px;
+  padding:22px;
+  margin:20px 0;
+  display:grid;
+  grid-template-columns:repeat(3,1fr);
+  gap:18px;
+}
+
+.data-editor h3{
+  grid-column:1/-1;
+  margin:0;
+  color:#172033;
+}
+
+.data-editor label{
+  display:flex;
+  flex-direction:column;
+  gap:8px;
+  font-weight:600;
+  color:#374151;
+}
+
+.data-editor input{
+  padding:12px;
+  border:1px solid #d1d5db;
+  border-radius:8px;
+  font-size:15px;
+}
+.enterprise-workspace{
+  padding:24px;
+  background:#eef3f8;
+}
+
+.enterprise-patient-header{
+  background:white;
+  border:1px solid #dbe3ec;
+  border-radius:16px;
+  padding:24px;
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  margin-bottom:18px;
+}
+
+.patient-main{
+  display:flex;
+  align-items:center;
+  gap:20px;
+}
+
+.patient-photo{
+  width:86px;
+  height:86px;
+  border-radius:50%;
+  background:#8B1E2D;
+  color:white;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-size:28px;
+  font-weight:800;
+}
+
+.patient-main h1{
+  margin:0;
+  font-size:30px;
+  color:#0f172a;
+}
+
+.patient-main p,
+.patient-main span{
+  color:#64748b;
+}
+
+.patient-score{
+  border:1px solid #dbe3ec;
+  border-radius:16px;
+  padding:18px 28px;
+  text-align:center;
+}
+
+.patient-score h2{
+  margin:0;
+  font-size:38px;
+  color:#15803d;
+}
+
+.enterprise-tabs{
+  background:white;
+  border:1px solid #dbe3ec;
+  border-radius:14px;
+  padding:8px;
+  display:flex;
+  gap:8px;
+  margin-bottom:18px;
+}
+
+.enterprise-tabs button{
+  border:none;
+  background:transparent;
+  padding:12px 16px;
+  border-radius:10px;
+  font-weight:700;
+  cursor:pointer;
+  color:#334155;
+}
+
+.enterprise-tabs button.active{
+  background:#8B1E2D;
+  color:white;
+}
+
+.enterprise-metrics{
+  display:grid;
+  grid-template-columns:repeat(4,1fr);
+  gap:14px;
+  margin-bottom:18px;
+}
+
+.enterprise-card,
+.enterprise-panel{
+  background:white;
+  border:1px solid #dbe3ec;
+  border-radius:16px;
+  padding:20px;
+}
+
+.enterprise-card p{
+  color:#64748b;
+  margin:0;
+}
+
+.enterprise-card h2{
+  font-size:32px;
+  margin:8px 0;
+  color:#0f172a;
+}
+
+.enterprise-card span{
+  color:#8B1E2D;
+  font-weight:700;
+}
+
+.enterprise-grid{
+  display:grid;
+  grid-template-columns:repeat(2,1fr);
+  gap:18px;
+}
+
+.enterprise-panel h3{
+  margin-top:0;
+  color:#0f172a;
+}
+
+.enterprise-panel p{
+  background:#f8fafc;
+  border:1px solid #e5eaf0;
+  border-radius:10px;
+  padding:12px;
+  color:#0c1b2f;
+}
+/* ==========================
+   Patient Workspace Header
+========================== */
+
+.pw-header{
+    background:#fff;
+    border:1px solid #dbe3ec;
+    border-radius:18px;
+    padding:26px 30px;
+
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+
+    margin-bottom:20px;
+}
+
+.pw-left{
+    display:flex;
+    align-items:center;
+    gap:24px;
+}
+
+.pw-avatar{
+
+    width:90px;
+    height:90px;
+
+    border-radius:50%;
+
+    background:#8B1E2D;
+
+    color:white;
+
+    display:flex;
+    justify-content:center;
+    align-items:center;
+
+    font-size:32px;
+    font-weight:bold;
+}
+
+.pw-left h1{
+    margin:0;
+    color:#172033;
+    font-size:30px;
+}
+
+.pw-left p{
+    margin:6px 0 14px;
+    color:#64748b;
+}
+
+.pw-tags{
+    display:flex;
+    gap:10px;
+    flex-wrap:wrap;
+}
+
+.pw-tags span{
+
+    background:#eef2ff;
+
+    color:#4338ca;
+
+    padding:6px 14px;
+
+    border-radius:999px;
+
+    font-size:13px;
+}
+
+.pw-score{
+
+    width:180px;
+
+    text-align:center;
+
+    border:1px solid #dbe3ec;
+
+    border-radius:18px;
+
+    padding:20px;
+}
+
+.pw-score p{
+
+    margin:0;
+
+    color:#64748b;
+}
+
+.pw-score h2{
+
+    margin:10px 0;
+
+    font-size:46px;
+
+    color:#16a34a;
+}
+.pw-tabs{
+  background:#fff;
+  border:1px solid #dbe3ec;
+  border-radius:14px;
+  padding:8px;
+  display:flex;
+  gap:8px;
+  margin-bottom:18px;
+}
+
+.pw-tabs button{
+  border:none;
+  background:transparent;
+  padding:12px 16px;
+  border-radius:10px;
+  font-weight:700;
+  color:#334155;
+  cursor:pointer;
+}
+
+.pw-tabs button.active{
+  background:#8B1E2D;
+  color:white;
+}
+/* ===========================
+   Metrics Grid
+=========================== */
+
+.metrics-grid{
+    display:grid;
+    grid-template-columns:repeat(4,1fr);
+    gap:18px;
+    margin-bottom:20px;
+}
+
+.metric-card{
+
+    background:white;
+
+    border:1px solid #dbe3ec;
+
+    border-radius:16px;
+
+    padding:22px;
+
+    transition:.25s;
+}
+
+.metric-card:hover{
+
+    transform:translateY(-4px);
+
+    box-shadow:0 12px 30px rgba(0,0,0,.08);
+}
+
+.metric-card h4{
+
+    margin:0;
+
+    color:#64748b;
+
+    font-size:15px;
+}
+
+.metric-card h2{
+
+    margin:10px 0;
+
+    color:#172033;
+
+    font-size:34px;
+}
+
+.metric-card span{
+
+    color:#8B1E2D;
+
+    font-weight:700;
+}
+.assessment-progress{
+    background:white;
+    border:1px solid #dbe3ec;
+    border-radius:16px;
+    padding:22px;
+}
+
+.assessment-progress h3{
+    margin-top:0;
+    color:#172033;
+}
+
+.progress-item{
+    margin-top:18px;
+}
+
+.progress-header{
+    display:flex;
+    justify-content:space-between;
+    margin-bottom:8px;
+    font-weight:600;
+    color:#334155;
+}
+
+.progress-bar{
+    width:100%;
+    height:10px;
+    background:#edf2f7;
+    border-radius:999px;
+    overflow:hidden;
+}
+
+.progress-fill{
+    height:100%;
+    background:#8B1E2D;
+    border-radius:999px;
+}
+
+.progress-item small{
+    display:block;
+    margin-top:8px;
+    color:#64748b;
+}
+.pw-panel{
+  background:white;
+  border:1px solid #dbe3ec;
+  border-radius:16px;
+  padding:22px;
+}
+
+.pw-panel h3{
+  margin-top:0;
+  color:#172033;
+}
+
+.alert-row{
+  border-radius:10px;
+  padding:12px;
+  margin-top:10px;
+  border:1px solid #e5eaf0;
+}
+
+.alert-row.critical{
+  background:#fff1f2;
+  border-color:#fecdd3;
+}
+
+.alert-row.warning{
+  background:#fffbeb;
+  border-color:#fde68a;
+}
+
+.alert-row strong{
+  color:#172033;
+}
+
+.alert-row p{
+  margin:6px 0 0;
+  color:#475569;
+}
+
+.pw-action-btn{
+  margin-top:16px;
+  background:#8B1E2D;
+  color:white;
+  border:none;
+  border-radius:8px;
+  padding:12px 16px;
+  font-weight:700;
+  cursor:pointer;
+}
+
+.labs-table{
+  width:100%;
+  border-collapse:collapse;
+}
+
+.labs-table td{
+  padding:12px;
+  border-bottom:1px solid #e5eaf0;
+  color:#334155;
+}
+
+.status-low{
+  color:#b91c1c !important;
+  font-weight:700;
+}
+
+.status-normal{
+  color:#15803d !important;
+  font-weight:700;
+}
+.timeline-item,
+.doc-row{
+  border:1px solid #e5eaf0;
+  background:#f8fafc;
+  border-radius:10px;
+  padding:12px;
+  margin-top:10px;
+}
+
+.timeline-item strong{
+  color:#172033;
+}
+
+.timeline-item p{
+  margin:6px 0 0;
+  color:#64748b;
+}
+
+.quick-notes{
+  width:100%;
+  min-height:130px;
+  border:1px solid #dbe3ec;
+  border-radius:10px;
+  padding:14px;
+  resize:vertical;
+  font-family:inherit;
+}
+.care-row{
+  border:1px solid #e5eaf0;
+  background:#f8fafc;
+  border-radius:10px;
+  padding:12px;
+  margin-top:10px;
+}
+
+.care-row strong{
+  color:#172033;
+}
+
+.care-row p{
+  margin:6px 0 0;
+  color:#64748b;
+}
+
+.nutrimap-mini .mini-body{
+  display:grid;
+  grid-template-columns:repeat(2,1fr);
+  gap:10px;
+  margin:14px 0;
+}
+
+.nutrimap-mini .mini-body span{
+  background:#f8fafc;
+  border:1px solid #e5eaf0;
+  border-radius:10px;
+  padding:12px;
+  text-align:center;
+  font-weight:700;
+  color:#8B1E2D;
+}
+.enterprise-grid{
+  display:grid !important;
+  grid-template-columns:1.2fr 1fr 1fr !important;
+  gap:18px !important;
+  align-items:start;
+}
+
+.pw-panel{
+  min-height:240px;
+}
+
+.assessment-progress{
+  grid-row:span 2;
+}
+
+.quick-notes{
+  min-height:190px;
+}
+
+@media (max-width:1200px){
+  .enterprise-grid{
+    grid-template-columns:1fr 1fr !important;
+  }
+}
+
+@media (max-width:800px){
+  .enterprise-grid,
+  .metrics-grid{
+    grid-template-columns:1fr !important;
+  }
+}
+/* ===== Sprint 2.5 UI Polish ===== */
+
+*{
+  font-family:"Inter",sans-serif;
+}
+
+body{
+  background:#F5F7FA;
+  color:#172033;
+}
+
+.enterprise-workspace{
+  background:#F5F7FA !important;
+}
+
+.pw-header,
+.pw-panel,
+.metric-card,
+.assessment-progress,
+.enterprise-panel,
+.assessment-page,
+.nutrimap-panel,
+.info-panel{
+  background:#FFFFFF !important;
+  border:1px solid #E5EAF0 !important;
+  border-radius:18px !important;
+  box-shadow:0 4px 12px rgba(15,23,42,.04) !important;
+  transition:.25s;
+}
+
+.pw-panel:hover,
+.metric-card:hover,
+.enterprise-panel:hover{
+  transform:translateY(-4px);
+  box-shadow:0 15px 35px rgba(15,23,42,.08) !important;
+}
+
+h1{
+  font-size:30px;
+  font-weight:700;
+}
+
+h2{
+  font-size:24px;
+  font-weight:700;
+}
+
+h3{
+  font-size:18px;
+  font-weight:700;
+}
+
+p{
+  line-height:1.6;
+}
+
+.pw-avatar,
+.assessment-letter,
+.pw-tabs button.active,
+.enterprise-tabs button.active,
+.pes-btn,
+.pw-action-btn{
+  background:#8B1E2D !important;
+}
+
+.pw-tags span{
+  background:#F8E8EC !important;
+  color:#8B1E2D !important;
+  border:1px solid #F1C8D0;
+}
+
+.metric-card h4,
+.pw-score p,
+.patient-main p,
+.patient-main span{
+  color:#64748B !important;
+}
+
+.metric-card h2,
+.pw-left h1,
+.patient-main h1,
+.pw-panel h3{
+  color:#172033 !important;
+}
+
+.metric-card span{
+  color:#8B1E2D !important;
+  font-weight:700;
+}
+
+.status-low{
+  color:#DC2626 !important;
+}
+
+.status-normal{
+  color:#16A34A !important;
+}
+
+.alert-row.critical{
+  background:#FFF1F2 !important;
+  border-color:#FECDD3 !important;
+}
+
+.alert-row.warning{
+  background:#FFFBEB !important;
+  border-color:#FDE68A !important;
+}
+
+.progress-fill{
+  background:#8B1E2D !important;
+}
+
+.labs-table td{
+  font-size:14px;
+}
+
+.quick-notes{
+  background:#FFFFFF;
+  font-size:14px;
+}
+.metric-card.pro{
+  position:relative;
+  overflow:hidden;
+  padding:24px;
+  border-radius:20px !important;
+}
+
+.metric-card.pro::before{
+  content:"";
+  position:absolute;
+  top:0;
+  left:0;
+  width:5px;
+  height:100%;
+}
+
+.metric-card.pro.success::before{
+  background:#16A34A;
+}
+
+.metric-card.pro.warning::before{
+  background:#D97706;
+}
+
+.metric-card.pro.danger::before{
+  background:#DC2626;
+}
+
+.metric-top{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  margin-bottom:20px;
+}
+
+.metric-icon{
+  width:44px;
+  height:44px;
+  border-radius:14px;
+  background:#F8E8EC;
+  color:#8B1E2D;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+}
+
+.metric-status{
+  background:#F8FAFC;
+  border:1px solid #E5EAF0;
+  color:#334155;
+  padding:6px 10px;
+  border-radius:999px;
+  font-size:12px;
+  font-weight:800;
+}
+
+.metric-card.pro h4{
+  color:#64748B;
+  font-size:14px;
+  margin-bottom:10px;
+}
+
+.metric-value{
+  display:flex;
+  align-items:flex-end;
+  gap:8px;
+}
+
+.metric-value h2{
+  margin:0;
+  font-size:38px;
+  color:#172033;
+}
+
+.metric-value span{
+  margin-bottom:6px;
+  color:#64748B;
+  font-weight:700;
+}
