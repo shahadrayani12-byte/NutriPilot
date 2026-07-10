@@ -115,13 +115,13 @@ export function NutriMapStage({ activeSystemId, impactEmphasis = {}, systems, on
   const relationshipIds = activeSystem?.connections || [];
 
   return (
-    <div className={`relative overflow-hidden rounded-[32px] border border-[var(--np-color-border-soft)] bg-[radial-gradient(circle_at_center,var(--np-color-secondary-soft),var(--np-color-surface-muted)_58%,white)] ${isPreview ? "p-3" : "p-4"}`}>
+    <div className={`np-nutrimap-stage relative overflow-hidden rounded-[32px] border border-[var(--np-color-border-soft)] bg-[radial-gradient(circle_at_center,var(--np-color-secondary-soft),var(--np-color-surface-muted)_58%,white)] ${isPreview ? "p-3" : "p-4"}`}>
       <div className={`absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full border border-[rgb(95_168_163_/_0.22)] ${isPreview ? "h-[360px] w-[220px]" : "h-[560px] w-[330px]"}`} />
       <div className={`absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full border border-[rgb(201_168_106_/_0.3)] ${isPreview ? "h-[270px] w-[155px]" : "h-[420px] w-[235px]"}`} />
 
-      <div className={`relative z-10 flex items-center justify-center ${isPreview ? "py-2" : "min-h-[560px]"}`}>
+      <div className={`np-nutrimap-body-wrap relative z-10 flex items-center justify-center ${isPreview ? "py-2" : "min-h-[560px]"}`}>
         <HumanBodyPlaceholder size={size} />
-        <div className={`absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 ${isPreview ? "h-[340px] w-[195px]" : "h-[640px] w-[360px]"}`}>
+        <div className={`np-nutrimap-marker-layer absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 ${isPreview ? "h-[340px] w-[195px]" : "h-[640px] w-[360px]"}`}>
           <RelationshipLines activeSystem={activeSystem} systems={systems} />
           {systems.map((system) => (
             <NutriMapBodyRegion
