@@ -25,13 +25,16 @@ import {
   NutriSectionHeader,
 } from "../components/common/NutriPilotPrimitives";
 import { ActivePatientBanner } from "../components/common/ActivePatientBanner";
+import { useTranslation } from "../i18n";
 import { getWorkflowNextAction, getWorkflowStatus } from "../utils/workflowStatus";
 
-export default function AICenter({ activePatient, aiSummary, onOpenClinicalHub, workflow: sharedWorkflow }) {
+export default function AICenter({ activePatient, aiSummary, intelligence, onOpenClinicalHub, workflow: sharedWorkflow }) {
+  const { language } = useTranslation();
   const patient = normalizeAiPatient(activePatient);
   const workflow = sharedWorkflow || getWorkflowStatus(patient);
   const nextAction = getWorkflowNextAction(patient);
   const clinicalBrief = buildClinicalBrief(patient, workflow, aiSummary);
+  const support = intelligence;
   const priorities = buildClinicalPriorities(patient, workflow);
   const missingInfo = buildMissingInformation(workflow);
   const suggestedActions = buildSuggestedActions(workflow, nextAction);
@@ -57,7 +60,7 @@ export default function AICenter({ activePatient, aiSummary, onOpenClinicalHub, 
   }
 
   return (
-    <NutriPage>
+    <NutriPage data-language={language}>
       <NutriPageMain>
         <NutriPageHeader
           actions={
@@ -96,6 +99,39 @@ export default function AICenter({ activePatient, aiSummary, onOpenClinicalHub, 
                 ))}
               </div>
             </NutriPanel>
+
+            {support ? (
+              <NutriPanel>
+                <NutriSectionHeader icon={Sparkles} kicker="Decision support" title="Clinical Decision Support" />
+                <div className="grid grid-cols-1 gap-3 xl:grid-cols-3">
+                  {support.decisionCards.map((card) => (
+                    <DecisionSupportCard card={card} key={card.title} />
+                  ))}
+                </div>
+              </NutriPanel>
+            ) : null}
+
+            {support ? (
+              <NutriPanel>
+                <NutriSectionHeader icon={FlaskConical} kicker="Smart labs" title="Laboratory Trends & Interpretation" />
+                <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+                  {support.labInterpretation.map((lab) => (
+                    <LabInterpretationCard lab={lab} trend={support.labTrends.find((item) => item.label === lab.label)} key={lab.label} />
+                  ))}
+                </div>
+              </NutriPanel>
+            ) : null}
+
+            {support ? (
+              <NutriPanel>
+                <NutriSectionHeader icon={ListChecks} kicker="Timeline" title="AI Timeline" />
+                <div className="space-y-3">
+                  {support.aiTimeline.map((event) => (
+                    <AiTimelineRow event={event} key={event.title} />
+                  ))}
+                </div>
+              </NutriPanel>
+            ) : null}
 
             <NutriPanel>
               <NutriSectionHeader icon={ListChecks} kicker="Proactive queue" title="Clinical Priorities" />
@@ -166,6 +202,51 @@ export default function AICenter({ activePatient, aiSummary, onOpenClinicalHub, 
         </section>
       </NutriPageMain>
     </NutriPage>
+  );
+}
+
+function DecisionSupportCard({ card }) {
+  return (
+    <article className="rounded-[20px] border border-[var(--np-color-border-soft)] bg-[var(--np-color-surface-muted)] p-4">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <h3 className="text-sm font-extrabold text-[var(--np-color-text)]">{card.title}</h3>
+        <NutriBadge tone={card.priority === "High" ? "danger" : card.priority === "Moderate" ? "warning" : "secondary"}>
+          {card.priority}
+        </NutriBadge>
+      </div>
+      <p className="mt-3 text-sm font-bold leading-6 text-[var(--np-color-text-muted)]">{card.reason}</p>
+      <p className="mt-3 text-sm font-extrabold text-[var(--np-color-text)]">{card.action}</p>
+      <p className="mt-2 text-xs font-bold text-[var(--np-color-text-soft)]">Confidence: {card.confidence}</p>
+    </article>
+  );
+}
+
+function LabInterpretationCard({ lab, trend }) {
+  return (
+    <article className="rounded-[20px] border border-[var(--np-color-border-soft)] bg-[var(--np-color-surface-muted)] p-4">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <h3 className="text-sm font-extrabold text-[var(--np-color-text)]">{lab.label}</h3>
+        <NutriBadge tone={lab.status === "Normal" ? "success" : lab.status === "Low" ? "warning" : "danger"}>{lab.status}</NutriBadge>
+      </div>
+      <p className="mt-2 text-lg font-extrabold text-[var(--np-color-text)]">{lab.value}</p>
+      <p className="mt-2 text-sm font-bold leading-6 text-[var(--np-color-text-muted)]">{lab.interpretation}</p>
+      <p className="mt-2 text-xs font-bold text-[var(--np-color-text-soft)]">{trend?.summary}</p>
+    </article>
+  );
+}
+
+function AiTimelineRow({ event }) {
+  return (
+    <div className="rounded-[18px] border border-[var(--np-color-border-soft)] bg-[var(--np-color-surface-muted)] p-4">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <p className="text-sm font-extrabold text-[var(--np-color-text)]">{event.title}</p>
+        <NutriBadge tone={event.status === "High" || event.status === "Needs Review" ? "danger" : event.status === "Moderate" ? "warning" : "secondary"}>
+          {event.status}
+        </NutriBadge>
+      </div>
+      <p className="mt-1 text-xs font-bold text-[var(--np-color-text-soft)]">{event.time}</p>
+      <p className="mt-2 text-sm font-bold leading-6 text-[var(--np-color-text-muted)]">{event.detail}</p>
+    </div>
   );
 }
 

@@ -1,6 +1,6 @@
 ﻿import { workspaceTabs } from "./clinicalData";
 
-export function ClinicalWorkspaceTabs({ activeTab, setActiveTab }) {
+export function ClinicalWorkspaceTabs({ activeTab, hasUnsavedChanges = false, setActiveTab }) {
   return (
     <aside className="rounded-[28px] border border-[var(--np-color-border-soft)] bg-white p-3 shadow-[var(--np-shadow-card)] xl:sticky xl:top-7 xl:self-start">
       <div className="mb-3 px-3 py-2">
@@ -28,7 +28,10 @@ export function ClinicalWorkspaceTabs({ activeTab, setActiveTab }) {
               }`}
             >
               <Icon className="h-4 w-4 shrink-0" />
-              <span>{tab.label}</span>
+              <span className="min-w-0 flex-1 truncate">{tab.label}</span>
+              {isActive && hasUnsavedChanges ? (
+                <span className="h-2 w-2 shrink-0 rounded-full bg-[var(--np-color-accent)]" aria-label="Unsaved changes" />
+              ) : null}
             </button>
           );
         })}

@@ -1,7 +1,9 @@
 ﻿import { useState } from "react";
 import { Activity, Brain, ClipboardList, FlaskConical, Network, StickyNote, Target } from "lucide-react";
+import { useTranslation } from "../../i18n";
 
 export function HumanBodyPlaceholder({ size = "large" }) {
+  const { t } = useTranslation();
   const sizeClass = size === "preview" ? "h-[340px] w-[195px]" : "h-[640px] w-[360px]";
 
   return (
@@ -18,7 +20,7 @@ export function HumanBodyPlaceholder({ size = "large" }) {
         <path d="M93 205 C104 188 132 192 140 212 C132 238 100 238 90 214Z" fill="var(--np-color-accent)" opacity="0.45" />
       </svg>
       <div className={`${size === "preview" ? "bottom-1 px-3 py-1.5" : "bottom-8 px-4 py-2"} absolute rounded-full border border-[var(--np-color-border-soft)] bg-white/85 text-xs font-extrabold text-[var(--np-color-text-muted)] shadow-[var(--np-shadow-sm)]`}>
-        Future 3D body model area
+        {t("nutrimap.futureBody")}
       </div>
     </div>
   );
@@ -60,6 +62,7 @@ export function NutriMapBodyRegion({ active, emphasis = "none", label, position,
 }
 
 export function NutriMapClinicalPanel({ compact = false, onOpenAiCenter, onOpenClinicalHub, onOpenLabs, onCreateTask, onGenerateReport, onSelectSystem, patientWorkflow, system, systems = [] }) {
+  const { t } = useTranslation();
   const [activeTab, setActiveTab] = useState("overview");
   const tabs = [
     { id: "overview", label: "Overview", icon: ClipboardList },
@@ -77,7 +80,7 @@ export function NutriMapClinicalPanel({ compact = false, onOpenAiCenter, onOpenC
     <aside className={`rounded-[24px] border border-[var(--np-color-border-soft)] bg-white shadow-[var(--np-shadow-card)] transition ${compact ? "p-4" : "p-5"}`}>
       <div className="mb-4 flex items-start justify-between gap-3">
         <div>
-          <p className="text-xs font-extrabold uppercase tracking-[0.14em] text-[var(--np-color-brand)]">Organ Intelligence Panel</p>
+          <p className="text-xs font-extrabold uppercase tracking-[0.14em] text-[var(--np-color-brand)]">{t("nutrimap.organIntelligencePanel")}</p>
           <h3 className={`${compact ? "text-xl" : "text-2xl"} mt-2 font-extrabold text-[var(--np-color-text)]`}>{system.label}</h3>
         </div>
         <span className={nutriMapStatusBadge(system.status)}>{system.status}</span>
@@ -92,7 +95,7 @@ export function NutriMapClinicalPanel({ compact = false, onOpenAiCenter, onOpenC
           return (
             <button className={`inline-flex min-h-9 shrink-0 items-center gap-2 rounded-full border px-3 text-xs font-extrabold transition ${isActive ? "border-[var(--np-color-brand)] bg-[var(--np-color-brand)] text-white" : "border-[var(--np-color-border)] bg-white text-[var(--np-color-text-muted)] hover:border-[var(--np-color-brand)] hover:text-[var(--np-color-brand)]"}`} key={tab.id} onClick={() => setActiveTab(tab.id)} type="button">
               <Icon className="h-3.5 w-3.5" />
-              {tab.label}
+              {t(`nutrimap.tabs.${tab.id}`)}
             </button>
           );
         })}
@@ -161,17 +164,18 @@ function RelationshipLines({ activeSystem, systems }) {
 }
 
 function OrganStatusSummary({ patientWorkflow, system }) {
+  const { t } = useTranslation();
   const summary = system.statusSummary;
   const stepStatus = (stepId, fallback) => patientWorkflow?.steps?.find((step) => step.id === stepId)?.status || fallback;
   const items = [
-    ["Current status", system.status],
-    ["Laboratory markers", `${summary.relatedLabs.join(", ")} - ${stepStatus("labs", "Placeholder")}`],
-    ["Assessments", `${summary.relatedAssessments.join(", ")} - ${stepStatus("assessment", "Placeholder")}`],
-    ["Nutrition diagnosis", `${summary.relatedDiagnosis} - ${stepStatus("pes", "Placeholder")}`],
-    ["Intervention", `${summary.relatedIntervention} - ${stepStatus("intervention", "Placeholder")}`],
-    ["Monitoring", `${summary.monitoringStatus} - ${stepStatus("monitoring", "Placeholder")}`],
-    ["AI review", `${summary.aiReviewStatus} - ${stepStatus("ai", "Placeholder")}`],
-    ["Report readiness", `${summary.reportReadiness} - ${stepStatus("reports", "Placeholder")}`],
+    [t("nutrimap.summary.currentStatus"), system.status],
+    [t("nutrimap.summary.laboratoryMarkers"), `${summary.relatedLabs.join(", ")} - ${stepStatus("labs", "Placeholder")}`],
+    [t("nutrimap.summary.assessments"), `${summary.relatedAssessments.join(", ")} - ${stepStatus("assessment", "Placeholder")}`],
+    [t("nutrimap.summary.nutritionDiagnosis"), `${summary.relatedDiagnosis} - ${stepStatus("pes", "Placeholder")}`],
+    [t("nutrimap.summary.intervention"), `${summary.relatedIntervention} - ${stepStatus("intervention", "Placeholder")}`],
+    [t("nutrimap.summary.monitoring"), `${summary.monitoringStatus} - ${stepStatus("monitoring", "Placeholder")}`],
+    [t("nutrimap.summary.aiReview"), `${summary.aiReviewStatus} - ${stepStatus("ai", "Placeholder")}`],
+    [t("nutrimap.summary.reportReadiness"), `${summary.reportReadiness} - ${stepStatus("reports", "Placeholder")}`],
   ];
 
   return (
@@ -187,10 +191,11 @@ function OrganStatusSummary({ patientWorkflow, system }) {
 }
 
 function NutritionConnections({ relatedSystems, onSelectSystem }) {
+  const { t } = useTranslation();
   if (!relatedSystems.length) return null;
   return (
     <section className="mt-4 rounded-[18px] border border-[var(--np-color-border-soft)] bg-[var(--np-color-surface-muted)] p-3">
-      <p className="flex items-center gap-2 text-xs font-extrabold uppercase tracking-[0.12em] text-[var(--np-color-brand)]"><Network className="h-4 w-4" />Organ Relationships</p>
+      <p className="flex items-center gap-2 text-xs font-extrabold uppercase tracking-[0.12em] text-[var(--np-color-brand)]"><Network className="h-4 w-4" />{t("nutrimap.organRelationships")}</p>
       <div className="mt-3 flex flex-wrap gap-2">
         {relatedSystems.map((system) => (
           <button className="rounded-full border border-[var(--np-color-border)] bg-white px-3 py-1.5 text-xs font-extrabold text-[var(--np-color-text)] transition hover:border-[var(--np-color-brand)] hover:text-[var(--np-color-brand)]" key={system.id} onClick={() => onSelectSystem(system.id)} type="button">
@@ -203,10 +208,11 @@ function NutritionConnections({ relatedSystems, onSelectSystem }) {
 }
 
 function OrganTimeline({ timeline = [] }) {
+  const { t } = useTranslation();
   if (!timeline.length) return null;
   return (
     <section className="mt-4 rounded-[18px] border border-[var(--np-color-border-soft)] bg-white p-3">
-      <p className="text-xs font-extrabold uppercase tracking-[0.12em] text-[var(--np-color-brand)]">Organ Timeline</p>
+      <p className="text-xs font-extrabold uppercase tracking-[0.12em] text-[var(--np-color-brand)]">{t("nutrimap.organTimeline")}</p>
       <div className="mt-3 space-y-2">
         {timeline.map((item) => (
           <div className="rounded-[14px] bg-[var(--np-color-surface-muted)] p-3" key={item.stage}>

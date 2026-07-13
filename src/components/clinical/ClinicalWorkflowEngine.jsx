@@ -4,7 +4,7 @@ import { ArrowRight, ClipboardList, Clock3, FileCheck2, Plus, Route } from "luci
 import { getWorkflowNextAction, getWorkflowStatus } from "../../utils/workflowStatus";
 import { NutriBadge, NutriButton, NutriPanel, NutriSectionHeader } from "../common/NutriPilotPrimitives";
 
-export function ClinicalWorkflowEngine({ activeTab, compact = false, onNavigate, patient, setActiveTab }) {
+export function ClinicalWorkflowEngine({ activeTab, compact = false, onNavigate, onOpenCompletion, patient, setActiveTab }) {
   const [generatedTask, setGeneratedTask] = useState("");
   const workflow = getWorkflowStatus(patient);
   const nextAction = getWorkflowNextAction(patient);
@@ -21,6 +21,11 @@ export function ClinicalWorkflowEngine({ activeTab, compact = false, onNavigate,
 
     if (step.tabId === "reports") {
       onNavigate?.("reports");
+      return;
+    }
+
+    if (step.tabId === "dietPlan") {
+      onNavigate?.("diet-plans");
       return;
     }
 
@@ -44,7 +49,11 @@ export function ClinicalWorkflowEngine({ activeTab, compact = false, onNavigate,
         icon={Route}
         kicker="Patient Journey"
         title="Guided Clinical Workflow"
-        action={<NutriBadge tone="brand">{workflow.percent}% complete</NutriBadge>}
+        action={
+          <button className="rounded-full" onClick={onOpenCompletion} type="button">
+            <NutriBadge tone="brand">{workflow.percent}% complete</NutriBadge>
+          </button>
+        }
       />
 
       <div className="mb-4 grid grid-cols-2 gap-2 lg:grid-cols-4">
@@ -60,7 +69,7 @@ export function ClinicalWorkflowEngine({ activeTab, compact = false, onNavigate,
           <span>{workflow.nextStep.label}: {workflow.nextStep.status}</span>
         </div>
         <div className="h-2 overflow-hidden rounded-full bg-[var(--np-color-surface-muted)]">
-          <div className="h-full rounded-full bg-[var(--np-color-brand)]" style={{ width: `${workflow.percent}%` }} />
+          <div className="h-full rounded-full bg-[var(--np-color-brand)] transition-[width] duration-500 ease-out" style={{ width: `${workflow.percent}%` }} />
         </div>
       </div>
 
@@ -147,5 +156,5 @@ function WorkflowStatusBadge({ status }) {
     "Needs Review": "warning",
   }[status] || "secondary";
 
-  return <NutriBadge className="text-[10px]" tone={tone}>{status}</NutriBadge>;
+  return <NutriBadge className="text-[10px] transition-transform duration-300 data-[complete=true]:scale-105" data-complete={status === "Completed"} tone={tone}>{status}</NutriBadge>;
 }

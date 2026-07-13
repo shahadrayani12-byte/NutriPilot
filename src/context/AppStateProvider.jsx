@@ -1,6 +1,7 @@
 ﻿import { useEffect, useMemo, useReducer } from "react";
 
 import { managedPatients } from "../data/patientData";
+import { buildClinicalDecisionSupport } from "../utils/clinicalDecisionSupport";
 import {
   enrichPatientForIntegration,
   generatePatientNotifications,
@@ -29,6 +30,8 @@ function createInitialState() {
   const activePatientId = patients[0]?.id || "";
   const activePatient = patients[0];
 
+  const intelligence = activePatient ? buildClinicalDecisionSupport(activePatient) : null;
+
   return {
     activePatientId,
     activePatientOverride: null,
@@ -38,7 +41,7 @@ function createInitialState() {
       riskLevel: activePatient?.riskLevel || "Not classified",
       summary: "Rule-based AI summary will use the active patient workflow.",
     },
-    notifications: activePatient ? generatePatientNotifications(activePatient) : [],
+    notifications: activePatient ? mergeByTitle(generatePatientNotifications(activePatient), intelligence?.notifications || []) : [],
     patients,
     reports: defaultReports,
     schedule: defaultSchedule,
@@ -60,7 +63,7 @@ function loadInitialState() {
     return {
       ...baseState,
       ...storedState,
-      patients: baseState.patients,
+      patients: storedState.patients?.length ? storedState.patients : baseState.patients,
       workflowByPatientId: storedState.workflowByPatientId || {},
     };
   } catch {
@@ -74,12 +77,17 @@ function appStateReducer(state, action) {
     const activePatientId = activePatient.id;
     const patientWithWorkflow = attachWorkflowOverrides(state, activePatient);
 
+    const intelligence = buildClinicalDecisionSupport(patientWithWorkflow, state);
+
     return {
       ...state,
       activePatientId,
       activePatientOverride: state.patients.some((patient) => patient.id === activePatientId) ? null : activePatient,
-      aiSummary: buildAiSummary(patientWithWorkflow),
-      notifications: mergeByTitle(state.notifications, generatePatientNotifications(patientWithWorkflow)),
+      aiSummary: buildAiSummary(patientWithWorkflow, intelligence),
+      notifications: mergeByTitle(
+        mergeByTitle(state.notifications, generatePatientNotifications(patientWithWorkflow)),
+        intelligence.notifications,
+      ),
       tasks: mergeById(state.tasks, generateWorkflowTasks(patientWithWorkflow)),
     };
   }
@@ -97,6 +105,7 @@ function appStateReducer(state, action) {
     };
     const nextState = { ...state, workflowByPatientId };
     const patient = attachWorkflowOverrides(nextState, resolveStatePatient(nextState, { id: patientId }));
+    const intelligence = buildClinicalDecisionSupport(patient, nextState);
     const refreshedTasks = generateWorkflowTasks(patient);
     const reportUpdates = stepId === "reports"
       ? state.reports.map((report) => ({ ...report, lastGenerated: completedAt, status: "Ready" }))
@@ -104,13 +113,40 @@ function appStateReducer(state, action) {
 
     return {
       ...nextState,
-      aiSummary: buildAiSummary(patient),
+      aiSummary: buildAiSummary(patient, intelligence),
       notifications: mergeByTitle(
-        removeStepNotifications(state.notifications, patient, stepId),
-        generatePatientNotifications(patient),
+        mergeByTitle(removeStepNotifications(state.notifications, patient, stepId), generatePatientNotifications(patient)),
+        intelligence.notifications,
       ),
       reports: reportUpdates,
       tasks: mergeById(removeWorkflowStepTasks(state.tasks, patientId, stepId), refreshedTasks),
+    };
+  }
+
+  if (action.type === "UPDATE_PATIENT") {
+    const incomingPatient = normalizeIncomingPatient(action.patient);
+    const patients = state.patients.map((patient) =>
+      patient.id === incomingPatient.id ? enrichPatientForIntegration({ ...patient, ...incomingPatient }) : patient,
+    );
+    const nextState = {
+      ...state,
+      activePatientId: incomingPatient.id,
+      activePatientOverride: patients.some((patient) => patient.id === incomingPatient.id) ? null : incomingPatient,
+      patients: patients.some((patient) => patient.id === incomingPatient.id)
+        ? patients
+        : [enrichPatientForIntegration(incomingPatient), ...patients],
+    };
+    const patient = attachWorkflowOverrides(nextState, resolveStatePatient(nextState, incomingPatient));
+    const intelligence = buildClinicalDecisionSupport(patient, nextState);
+
+    return {
+      ...nextState,
+      aiSummary: buildAiSummary(patient, intelligence),
+      notifications: mergeByTitle(
+        mergeByTitle(state.notifications, generatePatientNotifications(patient)),
+        intelligence.notifications,
+      ),
+      tasks: mergeById(state.tasks, generateWorkflowTasks(patient)),
     };
   }
 
@@ -167,6 +203,10 @@ export function AppStateProvider({ children }) {
   );
 
   const workflow = useMemo(() => getWorkflowStatus(activePatient), [activePatient]);
+  const intelligence = useMemo(
+    () => buildClinicalDecisionSupport(activePatient, state),
+    [activePatient, state],
+  );
 
   useEffect(() => {
     localStorage.setItem(
@@ -179,6 +219,7 @@ export function AppStateProvider({ children }) {
         reports: state.reports,
         schedule: state.schedule,
         tasks: state.tasks,
+        patients: state.patients,
         workflowByPatientId: state.workflowByPatientId,
       }),
     );
@@ -196,11 +237,13 @@ export function AppStateProvider({ children }) {
       patients: patientsWithWorkflow,
       reports: state.reports,
       schedule: state.schedule,
+      intelligence,
       setActivePatient: (patient) => dispatch({ type: "SET_ACTIVE_PATIENT", patient }),
       tasks: state.tasks,
+      updatePatient: (patient) => dispatch({ type: "UPDATE_PATIENT", patient }),
       workflow,
     }),
-    [activePatient, patientsWithWorkflow, state, workflow],
+    [activePatient, intelligence, patientsWithWorkflow, state, workflow],
   );
 
   return <AppStateContext.Provider value={value}>{children}</AppStateContext.Provider>;
@@ -214,7 +257,22 @@ function resolveStatePatient(state, patient) {
       item.fullName === patient?.name,
   );
 
-  return matchedPatient || enrichPatientForIntegration(patient || state.patients[0]);
+  return matchedPatient || enrichPatientForIntegration(normalizeIncomingPatient(patient || state.patients[0]));
+}
+
+function normalizeIncomingPatient(patient) {
+  const fullName = patient.fullName || patient.name || "Unknown Patient";
+  const slug = fullName
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/(^-|-$)/g, "");
+
+  return {
+    ...patient,
+    diagnosis: patient.diagnosis || patient.condition || "",
+    fullName,
+    id: patient.id || `patient-${slug || Date.now()}`,
+  };
 }
 
 function attachWorkflowOverrides(state, patient) {
@@ -226,15 +284,16 @@ function attachWorkflowOverrides(state, patient) {
   };
 }
 
-function buildAiSummary(patient) {
+function buildAiSummary(patient, intelligence = null) {
   const workflow = getWorkflowStatus(patient);
   const missingLabels = workflow.missing.map((step) => step.label).join(", ") || "No missing workflow steps";
+  const riskLevel = intelligence?.riskEngine?.level || patient.riskLevel;
 
   return {
     confidence: workflow.percent >= 70 ? "High" : workflow.percent >= 40 ? "Moderate" : "Low",
     generatedAt: new Date().toLocaleString(),
-    riskLevel: patient.riskLevel,
-    summary: `${patient.fullName} workflow is ${workflow.percent}% complete. Missing or pending documentation: ${missingLabels}.`,
+    riskLevel,
+    summary: `${patient.fullName} workflow is ${workflow.percent}% complete. Risk engine: ${riskLevel}. Missing or pending documentation: ${missingLabels}.`,
   };
 }
 

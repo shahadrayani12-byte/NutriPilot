@@ -22,6 +22,7 @@ import {
   NutriPanel,
   NutriSectionHeader,
 } from "../components/common/NutriPilotPrimitives";
+import { useTranslation } from "../i18n";
 
 const commandStats = [
   ["Active Studies", "12", "secondary"],
@@ -108,8 +109,10 @@ const vaultItems = [
 ];
 
 export default function ResearchCenter() {
+  const { language } = useTranslation();
+
   return (
-    <NutriPage>
+    <NutriPage data-language={language}>
       <NutriPageMain>
         <NutriPageHeader
           actions={

@@ -29,6 +29,7 @@ import {
   NutriSectionHeader,
 } from "../components/common/NutriPilotPrimitives";
 import { ActivePatientBanner } from "../components/common/ActivePatientBanner";
+import { useTranslation } from "../i18n";
 
 const viewOptions = ["List View", "Kanban View", "Timeline View", "Calendar View"];
 const categories = ["All", "Clinical", "Follow-up", "Laboratory", "AI Review", "Reports", "Research", "Administrative", "Innovation"];
@@ -181,9 +182,11 @@ export default function TaskCommandCenter({
   activePatient,
   addSharedTask,
   onOpenClinicalHub,
+  sharedPatients = [],
   sharedTasks,
   updateSharedTask,
 }) {
+  const { language } = useTranslation();
   const tasks = sharedTasks?.length ? sharedTasks : initialTasks;
   const [activeView, setActiveView] = useState("List View");
   const [activeCategory, setActiveCategory] = useState("All");
@@ -265,8 +268,18 @@ export default function TaskCommandCenter({
     updateSharedTask(taskId, { dueDate: "Snoozed to tomorrow", status: "Waiting" });
   }
 
+  function openKnownPatient(patientName) {
+    const patient = sharedPatients.find(
+      (item) => item.fullName === patientName || item.name === patientName,
+    );
+
+    if (patient) {
+      onOpenClinicalHub(patient);
+    }
+  }
+
   return (
-    <NutriPage>
+    <NutriPage data-language={language}>
       <NutriPageMain>
         <NutriPageHeader
           kicker="Clinical Operations"
@@ -293,7 +306,7 @@ export default function TaskCommandCenter({
 
         <section className="mt-5 grid grid-cols-1 gap-5 2xl:grid-cols-[minmax(0,1.25fr)_420px]">
           <div className="space-y-5">
-            <SmartPriorityQueue onOpenClinicalHub={onOpenClinicalHub} tasks={priorityQueue} />
+            <SmartPriorityQueue onOpenClinicalHub={openKnownPatient} tasks={priorityQueue} />
 
             <NutriPanel>
               <div className="mb-5 flex flex-col gap-4 border-b border-[var(--np-color-border-soft)] pb-5 xl:flex-row xl:items-center xl:justify-between">
@@ -344,7 +357,7 @@ export default function TaskCommandCenter({
                 activeView={activeView}
                 onArchive={archiveTask}
                 onComplete={markComplete}
-                onOpenClinicalHub={onOpenClinicalHub}
+                onOpenClinicalHub={openKnownPatient}
                 onSnooze={snoozeTask}
                 tasks={filteredTasks}
               />
@@ -425,7 +438,7 @@ function SmartPriorityQueue({ onOpenClinicalHub, tasks }) {
               <MiniMeta label="Related" value={task.relatedPatient !== "None" ? task.relatedPatient : task.relatedProject} />
               <MiniMeta label="Due" value={task.dueDate} />
             </div>
-            <NutriButton className="mt-4 w-full" onClick={() => onOpenClinicalHub({ fullName: task.relatedPatient })} variant="secondary">
+            <NutriButton className="mt-4 w-full" onClick={() => onOpenClinicalHub(task.relatedPatient)} variant="secondary">
               <BriefcaseMedical className="h-4 w-4" />
               {task.nextAction}
             </NutriButton>
@@ -576,7 +589,7 @@ function TaskCard({ compact = false, task, onArchive, onComplete, onOpenClinical
             Archive
           </NutriButton>
           {task.relatedPatient !== "None" ? (
-            <NutriButton className="min-h-10 px-3 text-xs" onClick={() => onOpenClinicalHub({ fullName: task.relatedPatient })} variant="secondary">
+            <NutriButton className="min-h-10 px-3 text-xs" onClick={() => onOpenClinicalHub(task.relatedPatient)} variant="secondary">
               <BriefcaseMedical className="h-4 w-4" />
               Open Clinical Hub
             </NutriButton>

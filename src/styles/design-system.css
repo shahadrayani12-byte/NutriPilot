@@ -652,7 +652,7 @@
     color: var(--np-color-brand);
   }
 
-  .np-sidebar-item-active::before {
+.np-sidebar-item-active::before {
     background: var(--np-color-brand);
     border-radius: var(--np-radius-full);
     content: "";
@@ -661,8 +661,84 @@
     position: absolute;
     top: 50%;
     transform: translateY(-50%);
-    width: 0.1875rem;
-  }
+  width: 0.1875rem;
+}
+
+[dir="rtl"] {
+  text-align: right;
+}
+
+[dir="rtl"] body {
+  font-family: "Segoe UI", Tahoma, Arial, var(--np-font-family-sans);
+  letter-spacing: 0;
+  line-height: 1.65;
+}
+
+[dir="rtl"] .np-page-kicker,
+[dir="rtl"] .np-sidebar-section-title,
+[dir="rtl"] .uppercase {
+  letter-spacing: 0.04em;
+}
+
+[dir="rtl"] .np-topbar,
+[dir="rtl"] .np-mobile-header,
+[dir="rtl"] .np-panel,
+[dir="rtl"] .np-card,
+[dir="rtl"] .np-search-field {
+  text-align: right;
+}
+
+[dir="rtl"] .np-dashboard-metrics {
+  direction: rtl;
+}
+
+[dir="rtl"] .np-dashboard-metrics > * {
+  direction: rtl;
+}
+
+[dir="rtl"] .np-dashboard-shell .text-left {
+  text-align: right;
+}
+
+[dir="rtl"] .np-dashboard-shell button,
+[dir="rtl"] .np-dashboard-shell article,
+[dir="rtl"] .np-dashboard-shell section {
+  letter-spacing: 0;
+}
+
+[dir="rtl"] .np-dashboard-shell .np-button svg,
+[dir="rtl"] .np-dashboard-shell .np-badge svg {
+  transform: none;
+}
+
+[dir="rtl"] bdi,
+[dir="rtl"] [dir="ltr"] {
+  unicode-bidi: isolate;
+}
+
+[dir="rtl"] .np-sidebar {
+  border-left: 1px solid var(--np-color-border);
+  border-right: 0;
+  left: auto;
+  right: 0;
+}
+
+[dir="rtl"] .np-sidebar-item {
+  text-align: right;
+}
+
+[dir="rtl"] .np-sidebar-item > span {
+  flex-direction: row-reverse;
+}
+
+[dir="rtl"] .np-sidebar-item:hover {
+  transform: translateX(-2px);
+}
+
+[dir="rtl"] .np-sidebar-item-active::before {
+  left: auto;
+  right: 0.375rem;
+}
 
   .np-table {
     border-collapse: separate;
@@ -921,6 +997,11 @@
   width: calc(100% - var(--np-sidebar-width));
 }
 
+[dir="rtl"] .np-app-main {
+  margin-left: 0;
+  margin-right: var(--np-sidebar-width);
+}
+
 .np-mobile-header,
 .np-sidebar-mobile,
 .np-mobile-sidebar-overlay {
@@ -1002,6 +1083,7 @@
 
   .np-app-main {
     margin-left: 0;
+    margin-right: 0;
     min-height: 100vh;
     overflow-x: hidden;
     padding-top: 4.25rem;
@@ -1046,6 +1128,10 @@
     transition: transform var(--np-transition-slow);
     width: min(86vw, 22rem);
     z-index: 45;
+  }
+
+  [dir="rtl"] .np-sidebar-mobile {
+    transform: translateX(105%);
   }
 
   .np-sidebar-mobile-open {

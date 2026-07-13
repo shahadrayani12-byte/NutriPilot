@@ -1,14 +1,19 @@
 ﻿import { Activity, ArrowRight, CheckCircle2, UserRound } from "lucide-react";
 
 import { getWorkflowStatus } from "../../utils/workflowStatus";
+import { buildClinicalDecisionSupport } from "../../utils/clinicalDecisionSupport";
+import { useTranslation } from "../../i18n";
 import { NutriBadge, NutriButton } from "./NutriPilotPrimitives";
 
 export function ActivePatientBanner({ patient, onOpenClinicalHub, quickActions = [], compact = false }) {
+  const { t } = useTranslation();
+
   if (!patient) {
     return null;
   }
 
   const workflow = getWorkflowStatus(patient);
+  const intelligence = buildClinicalDecisionSupport(patient);
   const riskLevel = patient.riskLevel || "Not classified";
   const actions = quickActions.length ? quickActions : [["Open Clinical Hub", onOpenClinicalHub]];
 
@@ -21,13 +26,13 @@ export function ActivePatientBanner({ patient, onOpenClinicalHub, quickActions =
           </span>
           <div className="min-w-0">
             <p className="text-xs font-extrabold uppercase tracking-[0.14em] text-[var(--np-color-text-muted)]">
-              Active Patient
+              {t("patient.active")}
             </p>
             <h2 className="truncate text-xl font-extrabold text-[var(--np-color-text)]">
               {patient.fullName}
             </h2>
             <p className="mt-1 text-sm font-bold text-[var(--np-color-text-muted)]">
-              {patient.diagnosis || "No diagnosis recorded"} <span aria-hidden="true">•</span> Last updated {patient.lastUpdated || "Today"}
+              {patient.diagnosis || t("patient.noDiagnosis")} <span aria-hidden="true">•</span> {t("patient.lastUpdated")} {patient.lastUpdated || t("common.today")}
             </p>
           </div>
         </div>
@@ -36,11 +41,14 @@ export function ActivePatientBanner({ patient, onOpenClinicalHub, quickActions =
           <NutriBadge tone={riskLevel === "High Risk" ? "danger" : riskLevel === "Moderate Risk" ? "warning" : "secondary"}>
             {riskLevel}
           </NutriBadge>
+          <NutriBadge tone={intelligence.riskEngine.level === "High" ? "danger" : intelligence.riskEngine.level === "Moderate" ? "warning" : "success"}>
+            CDS {intelligence.nutritionStatusScore.score}%
+          </NutriBadge>
           <div className="min-w-40">
             <div className="mb-1 flex items-center justify-between text-xs font-extrabold text-[var(--np-color-text-muted)]">
               <span className="flex items-center gap-1">
                 <CheckCircle2 className="h-3.5 w-3.5" />
-                Workflow
+                {t("workflow.label")}
               </span>
               <span>{workflow.percent}%</span>
             </div>
@@ -57,7 +65,7 @@ export function ActivePatientBanner({ patient, onOpenClinicalHub, quickActions =
                 variant={index === 0 && !quickActions.length ? "secondary" : "secondary"}
               >
                 {index === 0 && !quickActions.length ? <Activity className="h-4 w-4" /> : null}
-                {label}
+                {t(`actions.${label}`, { defaultValue: label })}
                 {index === 0 && !quickActions.length ? <ArrowRight className="h-4 w-4" /> : null}
               </NutriButton>
             ))}

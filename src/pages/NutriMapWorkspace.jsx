@@ -4,9 +4,11 @@ import { Activity, ClipboardList, Network } from "lucide-react";
 import { NutriMapClinicalPanel, NutriMapStage } from "../components/NutriMap/NutriMapShared";
 import { NUTRIMAP_SYSTEMS, NUTRITION_IMPACTS, getNutriMapSystem, getNutritionImpact } from "../data/nutrimapSystems";
 import { ActivePatientBanner } from "../components/common/ActivePatientBanner";
+import { useTranslation } from "../i18n";
 
-export default function NutriMapWorkspace({ activePatient, onNavigate, onOpenClinicalHub, workflow }) {
-  const [activeSystemId, setActiveSystemId] = useState("brain");
+export default function NutriMapWorkspace({ activePatient, initialSystemId = "brain", onNavigate, onOpenClinicalHub, workflow }) {
+  const { language } = useTranslation();
+  const [activeSystemId, setActiveSystemId] = useState(initialSystemId || "brain");
   const [activeImpactId, setActiveImpactId] = useState("");
   const activeSystem = getNutriMapSystem(activeSystemId);
   const activeImpact = getNutritionImpact(activeImpactId);
@@ -27,7 +29,7 @@ export default function NutriMapWorkspace({ activePatient, onNavigate, onOpenCli
   }
 
   return (
-    <div className="np-page">
+    <div className="np-page" data-language={language}>
       <main className="np-page-main">
         <header className="np-page-header xl:grid-cols-[minmax(0,1fr)_auto]">
           <div>

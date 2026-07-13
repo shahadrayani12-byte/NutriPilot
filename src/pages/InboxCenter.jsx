@@ -25,6 +25,7 @@ import {
   NutriSectionHeader,
 } from "../components/common/NutriPilotPrimitives";
 import { ActivePatientBanner } from "../components/common/ActivePatientBanner";
+import { useTranslation } from "../i18n";
 import { generatePatientNotifications } from "../utils/workflowStatus";
 
 const categories = [
@@ -150,10 +151,12 @@ const inboxItems = [
 
 export default function InboxCenter({
   activePatient,
+  intelligence,
   notificationsState,
   onArchiveNotification,
   onOpenClinicalHub,
 }) {
+  const { language } = useTranslation();
   const [activeCategory, setActiveCategory] = useState("All");
   const [searchTerm, setSearchTerm] = useState("");
   const [items, setItems] = useState(inboxItems);
@@ -183,7 +186,20 @@ export default function InboxCenter({
           : [],
     [activePatient, notificationsState],
   );
-  const allItems = useMemo(() => [...activePatientItems, ...items], [activePatientItems, items]);
+  const intelligenceItems = useMemo(
+    () =>
+      (intelligence?.notifications || []).map((item, index) => ({
+        ...item,
+        id: `cds-${activePatient?.id || "patient"}-${index}`,
+        icon: item.category === "Reports Notifications" ? FileText : item.category === "Patient Messages" ? Stethoscope : Bot,
+        pinned: item.priority === "High",
+        source: "Clinical Decision Support",
+        time: "Now",
+        unread: true,
+      })),
+    [activePatient?.id, intelligence],
+  );
+  const allItems = useMemo(() => [...intelligenceItems, ...activePatientItems, ...items], [activePatientItems, intelligenceItems, items]);
 
   const visibleItems = useMemo(() => {
     const normalizedSearch = searchTerm.trim().toLowerCase();
@@ -227,7 +243,7 @@ export default function InboxCenter({
   }
 
   return (
-    <NutriPage>
+    <NutriPage data-language={language}>
       <NutriPageMain>
         <NutriPageHeader
           kicker="Communication Hub"

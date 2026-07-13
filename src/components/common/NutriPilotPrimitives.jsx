@@ -1,5 +1,7 @@
-export function NutriPage({ children, className = "" }) {
-  return <div className={`np-page ${className}`}>{children}</div>;
+import { useTranslation } from "../../i18n";
+
+export function NutriPage({ children, className = "", ...props }) {
+  return <div className={`np-page ${className}`} {...props}>{children}</div>;
 }
 
 export function NutriPageMain({ children, className = "" }) {
@@ -177,6 +179,8 @@ export function NutriTabs({ items, activeItem, onChange, className = "" }) {
 }
 
 export function NutriModal({ children, onClose, title, kicker, className = "" }) {
+  const { t } = useTranslation();
+
   return (
     <div className="np-modal-backdrop">
       <section className={`np-modal ${className}`}>
@@ -188,7 +192,7 @@ export function NutriModal({ children, onClose, title, kicker, className = "" })
             </div>
             {onClose ? (
               <button className="np-button np-button-secondary min-h-10 px-3" onClick={onClose} type="button">
-                Close
+                {t("common.close")}
               </button>
             ) : null}
           </header>

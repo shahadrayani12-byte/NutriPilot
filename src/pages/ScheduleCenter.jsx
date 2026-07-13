@@ -32,6 +32,7 @@ import {
   NutriSectionHeader,
 } from "../components/common/NutriPilotPrimitives";
 import { ActivePatientBanner } from "../components/common/ActivePatientBanner";
+import { useTranslation } from "../i18n";
 
 const filters = ["All", "Clinical", "Follow-up", "Research", "Telehealth", "High Risk", "Missed", "Completed"];
 const views = ["Month", "Week", "Day"];
@@ -200,7 +201,8 @@ const intelligence = [
   ["Research workload", "Moderate", "accent"],
 ];
 
-export default function ScheduleCenter({ activePatient, onOpenClinicalHub, scheduleState, setActivePatient }) {
+export default function ScheduleCenter({ activePatient, onOpenClinicalHub, scheduleState, setActivePatient, sharedPatients = [] }) {
+  const { language } = useTranslation();
   const [activeFilter, setActiveFilter] = useState("All");
   const [activeView, setActiveView] = useState("Week");
   const [selectedAppointmentId, setSelectedAppointmentId] = useState(appointments[0].id);
@@ -244,8 +246,28 @@ export default function ScheduleCenter({ activePatient, onOpenClinicalHub, sched
   const selectedAppointment =
     scheduleAppointments.find((appointment) => appointment.id === selectedAppointmentId) || scheduleAppointments[0];
 
+  function resolveSchedulePatient(patientName) {
+    return sharedPatients.find(
+      (patient) => patient.fullName === patientName || patient.name === patientName,
+    );
+  }
+
+  function selectAppointmentPatient(appointment) {
+    const patient = resolveSchedulePatient(appointment?.patient);
+    if (patient) {
+      setActivePatient(patient);
+    }
+  }
+
+  function openAppointmentPatient(appointment) {
+    const patient = resolveSchedulePatient(appointment?.patient);
+    if (patient) {
+      onOpenClinicalHub(patient);
+    }
+  }
+
   return (
-    <NutriPage>
+    <NutriPage data-language={language}>
       <NutriPageMain>
         <NutriPageHeader
           kicker="Daily Operations"
@@ -353,7 +375,7 @@ export default function ScheduleCenter({ activePatient, onOpenClinicalHub, sched
                 onSelectAppointment={(appointmentId) => {
                   const appointment = scheduleAppointments.find((item) => item.id === appointmentId);
                   setSelectedAppointmentId(appointmentId);
-                  setActivePatient({ fullName: appointment?.patient });
+                  selectAppointmentPatient(appointment);
                 }}
                 selectedAppointmentId={selectedAppointmentId}
               />
@@ -366,13 +388,13 @@ export default function ScheduleCenter({ activePatient, onOpenClinicalHub, sched
               onSelectAppointment={(appointmentId) => {
                 const appointment = scheduleAppointments.find((item) => item.id === appointmentId);
                 setSelectedAppointmentId(appointmentId);
-                setActivePatient({ fullName: appointment?.patient });
+                selectAppointmentPatient(appointment);
               }}
               selectedAppointmentId={selectedAppointmentId}
             />
             <AppointmentDetailPanel
               appointment={selectedAppointment}
-              onOpenClinicalHub={() => onOpenClinicalHub({ fullName: selectedAppointment.patient })}
+              onOpenClinicalHub={() => openAppointmentPatient(selectedAppointment)}
             />
           </aside>
         </section>

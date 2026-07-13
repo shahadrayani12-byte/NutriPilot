@@ -1,4 +1,4 @@
-﻿import { calculateBmi } from "../data/patientData";
+﻿import { calculateBmi } from "../data/patientData.js";
 
 export const workflowStepDefinitions = [
   { id: "summary", label: "Patient Summary", tabId: "summary" },
@@ -9,6 +9,7 @@ export const workflowStepDefinitions = [
   { id: "ai", label: "AI Review", tabId: "ai" },
   { id: "pes", label: "PES Diagnosis", tabId: "pes" },
   { id: "intervention", label: "Nutrition Intervention", tabId: "intervention" },
+  { id: "dietPlan", label: "Diet Plan Builder", tabId: "dietPlan" },
   { id: "monitoring", label: "Monitoring & Follow-up", tabId: "monitoring" },
   { id: "reports", label: "Report Generation", tabId: "reports" },
 ];
@@ -76,6 +77,7 @@ function buildStatusById(patient) {
   const hasDietarySignal = Boolean(patient?.notes);
   const hasPes = !diagnosis.includes("vitamin d") && !diagnosis.includes("obesity");
   const hasIntervention = riskLevel !== "High Risk" || notes.includes("plan");
+  const hasDietPlan = Array.isArray(patient?.dietPlans) && patient.dietPlans.some((plan) => plan.status === "Active" || plan.status === "Draft");
   const hasMonitoring = notes.includes("follow") || notes.includes("monitor");
   const aiReady = riskLevel !== "Low Risk";
   const reportReady = hasPes && hasIntervention && hasMonitoring;
@@ -84,6 +86,7 @@ function buildStatusById(patient) {
     ai: aiReady ? "Needs Review" : "Missing",
     assessment: hasAnthropometrics ? "Completed" : "In Progress",
     dietary: hasDietarySignal ? "Completed" : "Missing",
+    dietPlan: hasDietPlan ? patient.dietPlans.some((plan) => plan.status === "Active") ? "Completed" : "In Progress" : "Missing",
     intervention: hasIntervention ? "Completed" : "Missing",
     labs: hasLabSignal ? "Needs Review" : "Missing",
     medical: diagnosis ? "Completed" : "Missing",
@@ -196,6 +199,14 @@ export function generateWorkflowAlerts(patient, steps = null) {
           title: `Missing intervention for ${patientName}`,
         }
       : null,
+    stepById.dietPlan?.status === "Missing"
+      ? {
+          category: "Patient Messages",
+          description: "Diet plan builder has no active or draft plan for the active patient.",
+          priority: "Medium",
+          title: `Missing diet plan for ${patientName}`,
+        }
+      : null,
     stepById.monitoring?.status === "Missing"
       ? {
           category: "Patient Messages",
@@ -273,6 +284,7 @@ function workflowTaskTitle(stepId, patientName, status) {
 
   const titles = {
     ai: `Review AI summary for ${patientName}`,
+    dietPlan: `Build diet plan for ${patientName}`,
     dietary: `Review missing dietary recall for ${patientName}`,
     intervention: `Create intervention plan for ${patientName}`,
     labs: `Review missing lab data for ${patientName}`,
@@ -298,6 +310,7 @@ function nextActionLabel(stepId) {
   const labels = {
     ai: "Review AI insights",
     assessment: "Open assessment",
+    dietPlan: "Build diet plan",
     dietary: "Complete dietary assessment",
     intervention: "Create nutrition intervention",
     labs: "Complete laboratory review",
@@ -314,6 +327,7 @@ function nextActionLabel(stepId) {
 function nextStepReason(stepId, status) {
   const reasons = {
     ai: "AI review should be confirmed before relying on generated insights.",
+    dietPlan: "A patient-specific meal plan connects the intervention to practical daily intake.",
     intervention: "A care plan needs an intervention before monitoring can be meaningful.",
     labs: "Laboratory data needs review before strong clinical interpretation.",
     monitoring: "Follow-up keeps the care plan accountable over time.",
@@ -327,6 +341,7 @@ function nextStepReason(stepId, status) {
 function taskCategory(stepId) {
   const categories = {
     ai: "AI Review",
+    dietPlan: "Clinical",
     dietary: "Follow-up",
     intervention: "Clinical",
     labs: "Laboratory",
