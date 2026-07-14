@@ -179,6 +179,15 @@ function appStateReducer(state, action) {
     };
   }
 
+  if (action.type === "UPDATE_APPOINTMENT") {
+    return {
+      ...state,
+      schedule: state.schedule.map((appointment) =>
+        appointment.id === action.appointmentId ? { ...appointment, ...action.updates } : appointment,
+      ),
+    };
+  }
+
   if (action.type === "UPDATE_AI_SUMMARY") {
     return { ...state, aiSummary: { ...state.aiSummary, ...action.summary } };
   }

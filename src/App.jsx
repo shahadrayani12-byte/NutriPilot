@@ -300,13 +300,21 @@ function AppShell() {
         {page === "dashboard" && (
           <Dashboard
             openClinicalHub={openPatientWorkspace}
-            openNutriMap={() => setPage("nutrimap")}
+            openNutriMap={(systemId = "") => {
+              setNutriMapInitialSystem(systemId);
+              setPage("nutrimap");
+            }}
             activePatient={activePatient}
             globalSearchProps={globalSearchProps}
             intelligence={intelligence}
+            onNavigate={setPage}
             openResearch={() => setPage("research")}
             patients={patients}
+            reports={reports}
+            schedule={schedule}
             setActivePatient={setActivePatient}
+            updateAppointment={(appointmentId, updates) => dispatch({ type: "UPDATE_APPOINTMENT", appointmentId, updates })}
+            updatePatient={updatePatient}
             workflow={workflow}
           />
         )}
