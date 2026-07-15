@@ -57,7 +57,6 @@ export default function NutriMapWorkspace({ activePatient, initialSystemId = "br
     }
     setSelectedOrganId(organId);
     setDrawerState("open");
-    window.setTimeout(() => panelRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" }), 120);
   }, []);
 
   useEffect(() => {
