@@ -22,6 +22,7 @@ const DEFAULT_MODEL_METRICS = {
   scaledWidth: 1.397,
   width: 0.9474500119686127,
 };
+const PUBLIC_BASE_URL = import.meta.env.BASE_URL || "/";
 
 export function NutriMapModelStage({ activeLayer = ANATOMY_LAYERS["full-body"], activeLayerId = activeLayer.id, drawerOpen = false, impactEmphasis = {}, selectOrgan, selectedOrganId, size = "large", systems }) {
   const selectedOrgan = systems.find((system) => system.id === selectedOrganId);
@@ -290,6 +291,12 @@ class NutriMapModelErrorBoundary extends Component {
     return { hasError: true };
   }
 
+  componentDidCatch(error) {
+    console.error("NutriMap 3D stage failed", {
+      error: error?.message || String(error),
+    });
+  }
+
   render() {
     if (this.state.hasError) return this.props.fallback;
     return this.props.children;
@@ -304,6 +311,14 @@ class LayerModelErrorBoundary extends Component {
 
   static getDerivedStateFromError() {
     return { hasError: true };
+  }
+
+  componentDidCatch(error) {
+    console.error("NutriMap anatomy layer failed to load", {
+      activeLayerId: this.props.activeLayerId,
+      modelPath: this.props.modelPath,
+      error: error?.message || String(error),
+    });
   }
 
   componentDidUpdate(previousProps) {
@@ -402,7 +417,7 @@ function ModelLayerContent({
             <AnatomyModel
               activeLayerId="full-body"
               calibrationEnabled={calibrationEnabled}
-              modelPath={ANATOMY_LAYERS["full-body"].modelPath}
+              modelPath={getLayerModelUrl(ANATOMY_LAYERS["full-body"])}
               onMetrics={onMetrics}
               selectOrgan={selectOrgan}
               selectedOrganId={selectedOrganId}
@@ -416,6 +431,8 @@ function ModelLayerContent({
             </Html>
           </>
         )}
+        activeLayerId={activeLayerId}
+        modelPath={modelUrl}
         resetKey={activeLayerId}
       >
         {activeLayerId === "oral" || activeLayerId === "digestive" || activeLayerId === "liver" || activeLayerId === "kidneys" || activeLayerId === "pancreas" || activeLayerId === "circulatory" ? (
@@ -1085,8 +1102,17 @@ function prepareClinicalMaterial(sourceMaterial, activeLayerId) {
 }
 
 function getLayerModelUrl(layer) {
-  if (!layer?.cacheVersion) return layer.modelPath;
-  return `${layer.modelPath}?v=${layer.cacheVersion}`;
+  const resolvedPath = resolvePublicModelPath(layer.modelPath);
+  if (!layer?.cacheVersion) return resolvedPath;
+  return `${resolvedPath}?v=${layer.cacheVersion}`;
+}
+
+function resolvePublicModelPath(modelPath) {
+  if (!modelPath) return modelPath;
+  if (/^https?:\/\//i.test(modelPath)) return modelPath;
+  const normalizedBase = PUBLIC_BASE_URL.endsWith("/") ? PUBLIC_BASE_URL : `${PUBLIC_BASE_URL}/`;
+  const normalizedPath = modelPath.replace(/^\/+/, "");
+  return `${normalizedBase}${normalizedPath}`;
 }
 
 function applyTextureColorSpace(material) {
@@ -1147,14 +1173,14 @@ function normalizeClinicalStatus(status) {
   return "Gray";
 }
 
-useGLTF.preload("/models/n43kwzmu.glb");
-useGLTF.preload("/models/skeleton.glb");
-useGLTF.preload("/models/brain.glb");
-useGLTF.preload("/models/heart.glb");
-useGLTF.preload("/models/oral.glb");
-useGLTF.preload("/models/digestive.glb");
-useGLTF.clear?.("/models/liver.glb");
-useGLTF.clear?.("/models/liver.glb?v=20260715-085422");
-useGLTF.preload("/models/liver.glb?v=20260715-085422");
-useGLTF.preload("/models/kidneys.glb");
-useGLTF.preload("/models/pancreas.glb");
+useGLTF.preload(resolvePublicModelPath("/models/n43kwzmu.glb"));
+useGLTF.preload(resolvePublicModelPath("/models/skeleton.glb"));
+useGLTF.preload(resolvePublicModelPath("/models/brain.glb"));
+useGLTF.preload(resolvePublicModelPath("/models/heart.glb"));
+useGLTF.preload(resolvePublicModelPath("/models/oral.glb"));
+useGLTF.preload(resolvePublicModelPath("/models/digestive.glb"));
+useGLTF.clear?.(resolvePublicModelPath("/models/liver.glb"));
+useGLTF.clear?.(`${resolvePublicModelPath("/models/liver.glb")}?v=20260715-085422`);
+useGLTF.preload(`${resolvePublicModelPath("/models/liver.glb")}?v=20260715-085422`);
+useGLTF.preload(resolvePublicModelPath("/models/kidneys.glb"));
+useGLTF.preload(resolvePublicModelPath("/models/pancreas.glb"));
