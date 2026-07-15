@@ -1102,17 +1102,16 @@ function prepareClinicalMaterial(sourceMaterial, activeLayerId) {
 }
 
 function getLayerModelUrl(layer) {
-  const resolvedPath = resolvePublicModelPath(layer.modelPath);
+  const resolvedPath = getPublicAssetUrl(layer.modelPath);
   if (!layer?.cacheVersion) return resolvedPath;
   return `${resolvedPath}?v=${layer.cacheVersion}`;
 }
 
-function resolvePublicModelPath(modelPath) {
-  if (!modelPath) return modelPath;
-  if (/^https?:\/\//i.test(modelPath)) return modelPath;
-  const normalizedBase = PUBLIC_BASE_URL.endsWith("/") ? PUBLIC_BASE_URL : `${PUBLIC_BASE_URL}/`;
-  const normalizedPath = modelPath.replace(/^\/+/, "");
-  return `${normalizedBase}${normalizedPath}`;
+function getPublicAssetUrl(path) {
+  if (!path) return path;
+  if (/^https?:\/\//i.test(path)) return path;
+  const base = PUBLIC_BASE_URL || "/";
+  return `${base.replace(/\/$/, "")}/${path.replace(/^\//, "")}`;
 }
 
 function applyTextureColorSpace(material) {
@@ -1173,14 +1172,6 @@ function normalizeClinicalStatus(status) {
   return "Gray";
 }
 
-useGLTF.preload(resolvePublicModelPath("/models/n43kwzmu.glb"));
-useGLTF.preload(resolvePublicModelPath("/models/skeleton.glb"));
-useGLTF.preload(resolvePublicModelPath("/models/brain.glb"));
-useGLTF.preload(resolvePublicModelPath("/models/heart.glb"));
-useGLTF.preload(resolvePublicModelPath("/models/oral.glb"));
-useGLTF.preload(resolvePublicModelPath("/models/digestive.glb"));
-useGLTF.clear?.(resolvePublicModelPath("/models/liver.glb"));
-useGLTF.clear?.(`${resolvePublicModelPath("/models/liver.glb")}?v=20260715-085422`);
-useGLTF.preload(`${resolvePublicModelPath("/models/liver.glb")}?v=20260715-085422`);
-useGLTF.preload(resolvePublicModelPath("/models/kidneys.glb"));
-useGLTF.preload(resolvePublicModelPath("/models/pancreas.glb"));
+useGLTF.preload(getPublicAssetUrl("/models/n43kwzmu.glb"));
+useGLTF.clear?.(getPublicAssetUrl("/models/liver.glb"));
+useGLTF.clear?.(`${getPublicAssetUrl("/models/liver.glb")}?v=20260715-085422`);

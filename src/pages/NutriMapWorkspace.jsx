@@ -264,6 +264,20 @@ function OrganDrawer({
 }
 
 function OrganNavigationGrid({ selectedOrganId, impactEmphasis, selectOrgan, organSummaries, systems }) {
+  const handleOrganPress = useCallback((event) => {
+    const organId = event.currentTarget.dataset.organId;
+    if (!organId) return;
+    selectOrgan(organId);
+  }, [selectOrgan]);
+
+  const handleOrganKeyDown = useCallback((event) => {
+    if (event.key !== "Enter" && event.key !== " ") return;
+    event.preventDefault();
+    const organId = event.currentTarget.dataset.organId;
+    if (!organId) return;
+    selectOrgan(organId);
+  }, [selectOrgan]);
+
   return (
     <section className="mb-4 rounded-[22px] border border-[var(--np-color-border-soft)] bg-[var(--np-color-surface-muted)] p-3">
       <div className="mb-3 flex items-center gap-3">
@@ -285,6 +299,7 @@ function OrganNavigationGrid({ selectedOrganId, impactEmphasis, selectOrgan, org
 
           return (
             <button
+              aria-pressed={isActive}
               className={`min-h-[76px] rounded-[16px] border p-2.5 text-left transition ${
                 isActive
                   ? "border-[var(--np-color-brand)] bg-white text-[var(--np-color-brand)] shadow-[var(--np-shadow-sm)]"
@@ -294,8 +309,11 @@ function OrganNavigationGrid({ selectedOrganId, impactEmphasis, selectOrgan, org
                       ? "border-[var(--np-color-accent)] bg-[var(--np-color-accent-soft)] text-[#8a6a25]"
                       : "border-[var(--np-color-border-soft)] bg-white/82 text-[var(--np-color-text)] hover:border-[var(--np-color-brand)]"
               }`}
+              data-organ-id={system.id}
               key={system.id}
-              onClick={() => selectOrgan(system.id)}
+              onClick={handleOrganPress}
+              onKeyDown={handleOrganKeyDown}
+              onPointerDown={handleOrganPress}
               type="button"
             >
               <span className="flex items-center justify-between gap-2">
