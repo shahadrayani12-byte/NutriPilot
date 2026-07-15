@@ -68,6 +68,26 @@ export default function NutriMapWorkspace({ activePatient, initialSystemId = "br
   }, [drawerState]);
 
   useEffect(() => {
+    const handleNativeOrganSelect = (event) => {
+      const target = event.target?.closest?.("[data-organ-id]");
+      const organId = target?.dataset?.organId;
+      if (!NUTRIMAP_ORGAN_CONFIG[organId]) return;
+      setSelectedOrganId(organId);
+      setDrawerState("open");
+    };
+
+    document.addEventListener("pointerdown", handleNativeOrganSelect, true);
+    document.addEventListener("click", handleNativeOrganSelect, true);
+    document.addEventListener("focusin", handleNativeOrganSelect, true);
+
+    return () => {
+      document.removeEventListener("pointerdown", handleNativeOrganSelect, true);
+      document.removeEventListener("click", handleNativeOrganSelect, true);
+      document.removeEventListener("focusin", handleNativeOrganSelect, true);
+    };
+  }, []);
+
+  useEffect(() => {
     if (!import.meta.env.DEV) return;
     console.debug("NutriMap selected organ sync", {
       activePatientId: activePatient?.id,

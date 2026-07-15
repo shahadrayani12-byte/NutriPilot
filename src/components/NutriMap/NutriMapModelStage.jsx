@@ -651,6 +651,7 @@ function OrganHotspotButton({ item, onSelect, selectedOrganId }) {
         aria-label={`${system.label}: ${status}`}
         aria-pressed={active}
         className={`relative flex h-11 w-11 items-center justify-center rounded-full transition hover:scale-105 focus:outline-none focus:ring-4 focus:ring-[rgb(122_31_43_/_0.18)] ${hotspotClass(active, emphasis, relationship)}`}
+        data-organ-id={hotspot.organId}
         onClick={handleSelect}
         onDoubleClick={stopHotspotEvent}
         onFocus={handleSelect}
