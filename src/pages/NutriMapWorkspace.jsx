@@ -311,6 +311,7 @@ function OrganNavigationGrid({ selectedOrganId, impactEmphasis, selectOrgan, org
               data-organ-id={system.id}
               key={system.id}
               onClick={handleOrganPress}
+              onFocus={handleOrganPress}
               onKeyDown={handleOrganKeyDown}
               onPointerDown={handleOrganPress}
               type="button"
