@@ -64,7 +64,6 @@ export function NutriMapModelStage({ activeLayer = ANATOMY_LAYERS["full-body"], 
           }}
           style={{ height: "100%", width: "100%" }}
         >
-          <color attach="background" args={["#00000000"]} />
           <ambientLight intensity={0.88} />
           <hemisphereLight args={["#ffffff", "#d8cfc4", 1.28]} />
           <directionalLight castShadow intensity={2.35} position={[3.5, 5.5, 4.2]} shadow-mapSize={[2048, 2048]} />
