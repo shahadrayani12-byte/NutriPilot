@@ -1,7 +1,7 @@
 import { useState } from "react";
 import NutriMap3D from "./NutriMap3D";
 
-export default function NutriMap({ activeOrgan, setActiveOrgan }) {
+export default function NutriMap({ selectedOrganId = "brain", selectOrgan }) {
   const [viewMode, setViewMode] = useState("2d");
 
   return (
@@ -54,17 +54,17 @@ export default function NutriMap({ activeOrgan, setActiveOrgan }) {
             <path d="M150 292 C165 370 175 465 182 535" className="svg-limb" />
           </svg>
 
-          <button className={`map-dot brain-dot ${activeOrgan === "brain" ? "active" : ""}`} data-label="Brain" onClick={() => setActiveOrgan("brain")}></button>
-          <button className={`map-dot mouth-dot ${activeOrgan === "mouth" ? "active" : ""}`} data-label="Oral" onClick={() => setActiveOrgan("mouth")}></button>
-          <button className={`map-dot heart-dot ${activeOrgan === "heart" ? "active" : ""}`} data-label="Heart" onClick={() => setActiveOrgan("heart")}></button>
-          <button className={`map-dot liver-dot ${activeOrgan === "liver" ? "active" : ""}`} data-label="Liver" onClick={() => setActiveOrgan("liver")}></button>
-          <button className={`map-dot gut-dot ${activeOrgan === "gut" ? "active" : ""}`} data-label="Gut" onClick={() => setActiveOrgan("gut")}></button>
-          <button className={`map-dot bone-dot ${activeOrgan === "bone" ? "active" : ""}`} data-label="Bone" onClick={() => setActiveOrgan("bone")}></button>
+          <button className={`map-dot brain-dot ${selectedOrganId === "brain" ? "active" : ""}`} data-label="Brain" onClick={() => selectOrgan?.("brain")}></button>
+          <button className={`map-dot mouth-dot ${selectedOrganId === "oral-cavity" ? "active" : ""}`} data-label="Oral" onClick={() => selectOrgan?.("oral-cavity")}></button>
+          <button className={`map-dot heart-dot ${selectedOrganId === "heart" ? "active" : ""}`} data-label="Heart" onClick={() => selectOrgan?.("heart")}></button>
+          <button className={`map-dot liver-dot ${selectedOrganId === "liver" ? "active" : ""}`} data-label="Liver" onClick={() => selectOrgan?.("liver")}></button>
+          <button className={`map-dot gut-dot ${selectedOrganId === "gastrointestinal" ? "active" : ""}`} data-label="Gut" onClick={() => selectOrgan?.("gastrointestinal")}></button>
+          <button className={`map-dot bone-dot ${selectedOrganId === "bones" ? "active" : ""}`} data-label="Bone" onClick={() => selectOrgan?.("bones")}></button>
         </div>
       )}
 
       {viewMode === "3d" && (
-        <NutriMap3D activeOrgan={activeOrgan} />
+        <NutriMap3D selectedOrganId={selectedOrganId} />
       )}
     </div>
   );

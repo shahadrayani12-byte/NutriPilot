@@ -1,6 +1,7 @@
-﻿import { useState } from "react";
-import { Activity, Brain, ClipboardList, FlaskConical, Network, StickyNote, Target } from "lucide-react";
+﻿import { useEffect, useState } from "react";
+import { Activity, Brain, ChevronDown, ClipboardList, FlaskConical, Network, StickyNote, Target, X } from "lucide-react";
 import { useTranslation } from "../../i18n";
+import { NutriMapModelStage } from "./NutriMapModelStage";
 
 export function HumanBodyPlaceholder({ size = "large" }) {
   const { t } = useTranslation();
@@ -61,7 +62,7 @@ export function NutriMapBodyRegion({ active, emphasis = "none", label, position,
   );
 }
 
-export function NutriMapClinicalPanel({ compact = false, onOpenAiCenter, onOpenClinicalHub, onOpenLabs, onCreateTask, onGenerateReport, onSelectSystem, patientWorkflow, system, systems = [] }) {
+export function NutriMapClinicalPanel({ activePatient, compact = false, onCollapse, onClose, onOpenAiCenter, onOpenClinicalHub, onOpenDietPlan, onOpenLabs, onCreateTask, onGenerateReport, selectOrgan, organSummary, patientWorkflow, system, systems = [], updatePatient }) {
   const { t } = useTranslation();
   const [activeTab, setActiveTab] = useState("overview");
   const tabs = [
@@ -74,131 +75,139 @@ export function NutriMapClinicalPanel({ compact = false, onOpenAiCenter, onOpenC
     { id: "notes", label: "Notes", icon: StickyNote },
   ];
   const relatedSystems = system.connections.map((systemId) => systems.find((item) => item.id === systemId)).filter(Boolean);
-  const activeSections = system.tabContent?.[activeTab] || [];
+  const activeSections = buildLiveTabSections(activeTab, system, organSummary, patientWorkflow);
+
+  useEffect(() => {
+    if (!import.meta.env.DEV) return;
+    console.debug("PANEL_ORGAN", system?.id);
+  }, [system?.id]);
 
   return (
-    <aside className={`rounded-[24px] border border-[var(--np-color-border-soft)] bg-white shadow-[var(--np-shadow-card)] transition ${compact ? "p-4" : "p-5"}`}>
-      <div className="mb-4 flex items-start justify-between gap-3">
-        <div>
-          <p className="text-xs font-extrabold uppercase tracking-[0.14em] text-[var(--np-color-brand)]">{t("nutrimap.organIntelligencePanel")}</p>
-          <h3 className={`${compact ? "text-xl" : "text-2xl"} mt-2 font-extrabold text-[var(--np-color-text)]`}>{system.label}</h3>
-        </div>
-        <span className={nutriMapStatusBadge(system.status)}>{system.status}</span>
-      </div>
-
-      <OrganStatusSummary patientWorkflow={patientWorkflow} system={system} />
-
-      <div className="mt-4 flex gap-2 overflow-x-auto pb-1">
-        {tabs.map((tab) => {
-          const Icon = tab.icon;
-          const isActive = activeTab === tab.id;
-          return (
-            <button className={`inline-flex min-h-9 shrink-0 items-center gap-2 rounded-full border px-3 text-xs font-extrabold transition ${isActive ? "border-[var(--np-color-brand)] bg-[var(--np-color-brand)] text-white" : "border-[var(--np-color-border)] bg-white text-[var(--np-color-text-muted)] hover:border-[var(--np-color-brand)] hover:text-[var(--np-color-brand)]"}`} key={tab.id} onClick={() => setActiveTab(tab.id)} type="button">
-              <Icon className="h-3.5 w-3.5" />
-              {t(`nutrimap.tabs.${tab.id}`)}
+    <aside className="flex flex-col bg-white">
+      <div className="sticky top-0 z-10 border-b border-[var(--np-color-border-soft)] bg-white/95 p-4 backdrop-blur">
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <p className="text-xs font-extrabold uppercase tracking-[0.14em] text-[var(--np-color-brand)]">{t("nutrimap.organIntelligencePanel")}</p>
+            <h3 className={`${compact ? "text-xl" : "text-2xl"} mt-2 font-extrabold text-[var(--np-color-text)]`}>{system.label}</h3>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className={nutriMapStatusBadge(organSummary?.statusColor || system.status)}>{organSummary?.status || statusLabel(system.status)}</span>
+            <button aria-label="Collapse organ drawer" className="flex h-9 w-9 items-center justify-center rounded-full border border-[var(--np-color-border-soft)] text-[var(--np-color-text-muted)] hover:text-[var(--np-color-brand)]" onClick={onCollapse} type="button">
+              <ChevronDown className="h-4 w-4" />
             </button>
-          );
-        })}
+            <button aria-label="Close organ drawer" className="flex h-9 w-9 items-center justify-center rounded-full border border-[var(--np-color-border-soft)] text-[var(--np-color-text-muted)] hover:text-[var(--np-color-brand)]" onClick={onClose} type="button">
+              <X className="h-4 w-4" />
+            </button>
+          </div>
+        </div>
+        <div className="mt-3 grid grid-cols-2 gap-2">
+          <DrawerMetric label="Data completeness" value={`${organSummary?.completeness ?? 0}%`} />
+          <DrawerMetric label="Related labs" value={organSummary?.relatedLabsCount ?? 0} />
+          <DrawerMetric label="Missing items" value={organSummary?.missingCount ?? 0} />
+          <DrawerMetric label="Last updated" value={organSummary?.lastUpdated || "Not recorded"} />
+        </div>
       </div>
 
-      <div className="mt-4 space-y-3" key={`${system.id}-${activeTab}`}>
-        {activeSections.map((section) => <NutriMapPanelSection key={section.title} section={section} />)}
-      </div>
+      <div className="p-4">
+        <OrganStatusSummary organSummary={organSummary} patientWorkflow={patientWorkflow} system={system} />
 
-      <NutritionConnections relatedSystems={relatedSystems} onSelectSystem={onSelectSystem} />
-      <OrganTimeline timeline={system.timeline} />
-      <OrganQuickActions onCreateTask={onCreateTask} onGenerateReport={onGenerateReport} onOpenAiCenter={onOpenAiCenter} onOpenClinicalHub={onOpenClinicalHub} onOpenLabs={onOpenLabs} />
+        <div className="mt-4 flex gap-2 overflow-x-auto pb-1">
+          {tabs.map((tab) => {
+            const Icon = tab.icon;
+            const isActive = activeTab === tab.id;
+            return (
+              <button aria-label={`Open ${tab.label} tab`} className={`inline-flex min-h-9 shrink-0 items-center gap-2 rounded-full border px-3 text-xs font-extrabold transition ${isActive ? "border-[var(--np-color-brand)] bg-[var(--np-color-brand)] text-white" : "border-[var(--np-color-border)] bg-white text-[var(--np-color-text-muted)] hover:border-[var(--np-color-brand)] hover:text-[var(--np-color-brand)]"}`} key={tab.id} onClick={() => setActiveTab(tab.id)} type="button">
+                <Icon className="h-3.5 w-3.5" />
+                {t(`nutrimap.tabs.${tab.id}`)}
+              </button>
+            );
+          })}
+        </div>
+
+        <div className={`mt-4 grid grid-cols-1 gap-3 ${activeTab === "overview" ? "xl:grid-cols-[minmax(0,1fr)_minmax(320px,0.85fr)]" : ""}`} key={`${system.id}-${activeTab}`}>
+          {activeTab === "notes" ? (
+            <OrganNotesEditor activePatient={activePatient} key={`${activePatient?.id || "patient"}-${system.id}`} organId={system.id} updatePatient={updatePatient} />
+          ) : (
+            <div className="space-y-3">
+              {activeSections.slice(0, 3).map((section) => <NutriMapPanelSection key={section.title} section={section} />)}
+            </div>
+          )}
+          {activeTab === "overview" ? (
+            <div className="grid grid-cols-1 gap-3">
+              <NutritionConnections relatedSystems={relatedSystems} selectOrgan={selectOrgan} />
+              <OrganTimeline organSummary={organSummary} />
+            </div>
+          ) : null}
+        </div>
+
+        <OrganQuickActions onCreateTask={onCreateTask} onGenerateReport={onGenerateReport} onOpenAiCenter={onOpenAiCenter} onOpenClinicalHub={onOpenClinicalHub} onOpenDietPlan={onOpenDietPlan} onOpenLabs={onOpenLabs} />
+      </div>
     </aside>
   );
 }
 
-export function NutriMapStage({ activeSystemId, impactEmphasis = {}, systems, onSelectSystem, size = "large" }) {
-  const isPreview = size === "preview";
-  const activeSystem = systems.find((system) => system.id === activeSystemId);
-  const relationshipIds = activeSystem?.connections || [];
-
+function DrawerMetric({ label, value }) {
   return (
-    <div className={`np-nutrimap-stage relative overflow-hidden rounded-[32px] border border-[var(--np-color-border-soft)] bg-[radial-gradient(circle_at_center,var(--np-color-secondary-soft),var(--np-color-surface-muted)_58%,white)] ${isPreview ? "p-3" : "p-4"}`}>
-      <div className={`absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full border border-[rgb(95_168_163_/_0.22)] ${isPreview ? "h-[360px] w-[220px]" : "h-[560px] w-[330px]"}`} />
-      <div className={`absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full border border-[rgb(201_168_106_/_0.3)] ${isPreview ? "h-[270px] w-[155px]" : "h-[420px] w-[235px]"}`} />
-
-      <div className={`np-nutrimap-body-wrap relative z-10 flex items-center justify-center ${isPreview ? "py-2" : "min-h-[560px]"}`}>
-        <HumanBodyPlaceholder size={size} />
-        <div className={`np-nutrimap-marker-layer absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 ${isPreview ? "h-[340px] w-[195px]" : "h-[640px] w-[360px]"}`}>
-          <RelationshipLines activeSystem={activeSystem} systems={systems} />
-          {systems.map((system) => (
-            <NutriMapBodyRegion
-              key={system.id}
-              active={activeSystemId === system.id}
-              emphasis={impactEmphasis[system.id] || "none"}
-              label={system.label}
-              position={system.bodyPosition}
-              relationship={relationshipIds.includes(system.id)}
-              status={system.status}
-              onClick={() => onSelectSystem(system.id)}
-            />
-          ))}
-        </div>
-
-      </div>
-
-
+    <div className="rounded-[14px] border border-[var(--np-color-border-soft)] bg-[var(--np-color-surface-muted)] p-2">
+      <p className="text-[10px] font-extrabold uppercase tracking-[0.1em] text-[var(--np-color-text-muted)]">{label}</p>
+      <p className="mt-1 truncate text-xs font-extrabold text-[var(--np-color-text)]">{value}</p>
     </div>
   );
 }
-
-function RelationshipLines({ activeSystem, systems }) {
-  if (!activeSystem?.mapPoint) return null;
-
+export function NutriMapStage({ activeLayer, activeLayerId, selectedOrganId, drawerOpen = false, impactEmphasis = {}, systems, selectOrgan, size = "large" }) {
   return (
-    <svg className="pointer-events-none absolute inset-0 z-20 h-full w-full" viewBox="0 0 100 100" preserveAspectRatio="none">
-      {activeSystem.connections.map((systemId) => {
-        const target = systems.find((system) => system.id === systemId);
-        if (!target?.mapPoint) return null;
-        return (
-          <line className="nutrimap-relationship-line" key={systemId} x1={activeSystem.mapPoint.x} y1={activeSystem.mapPoint.y} x2={target.mapPoint.x} y2={target.mapPoint.y} />
-        );
-      })}
-    </svg>
+    <NutriMapModelStage
+      activeLayer={activeLayer}
+      activeLayerId={activeLayerId}
+      drawerOpen={drawerOpen}
+      impactEmphasis={impactEmphasis}
+      selectOrgan={selectOrgan}
+      selectedOrganId={selectedOrganId}
+      size={size}
+      systems={systems}
+    />
   );
 }
 
-function OrganStatusSummary({ patientWorkflow, system }) {
+function OrganStatusSummary({ organSummary, patientWorkflow, system }) {
   const { t } = useTranslation();
   const summary = system.statusSummary;
   const stepStatus = (stepId, fallback) => patientWorkflow?.steps?.find((step) => step.id === stepId)?.status || fallback;
+  const labSummary = organSummary?.labs?.filter((lab) => lab.value !== "Not recorded").slice(0, 2).map((lab) => `${lab.label}: ${lab.value}${lab.unit ? ` ${lab.unit}` : ""}`).join(" · ");
+  const assessmentSummary = organSummary?.fields?.filter((field) => field.value !== "Not recorded").slice(0, 2).map((field) => field.label).join(" · ");
   const items = [
-    [t("nutrimap.summary.currentStatus"), system.status],
-    [t("nutrimap.summary.laboratoryMarkers"), `${summary.relatedLabs.join(", ")} - ${stepStatus("labs", "Placeholder")}`],
-    [t("nutrimap.summary.assessments"), `${summary.relatedAssessments.join(", ")} - ${stepStatus("assessment", "Placeholder")}`],
-    [t("nutrimap.summary.nutritionDiagnosis"), `${summary.relatedDiagnosis} - ${stepStatus("pes", "Placeholder")}`],
-    [t("nutrimap.summary.intervention"), `${summary.relatedIntervention} - ${stepStatus("intervention", "Placeholder")}`],
-    [t("nutrimap.summary.monitoring"), `${summary.monitoringStatus} - ${stepStatus("monitoring", "Placeholder")}`],
-    [t("nutrimap.summary.aiReview"), `${summary.aiReviewStatus} - ${stepStatus("ai", "Placeholder")}`],
-    [t("nutrimap.summary.reportReadiness"), `${summary.reportReadiness} - ${stepStatus("reports", "Placeholder")}`],
+    [t("nutrimap.summary.currentStatus"), statusLabel(system.status)],
+    [t("nutrimap.summary.laboratoryMarkers"), labSummary || summaryList(summary.relatedLabs, "No related laboratory result"), stepStatus("labs", "Not recorded")],
+    [t("nutrimap.summary.assessments"), assessmentSummary || summaryList(summary.relatedAssessments, "No assessment recorded"), stepStatus("assessment", "Not recorded")],
+    [t("nutrimap.summary.nutritionDiagnosis"), summaryValue(summary.relatedDiagnosis, "No nutrition diagnosis linked"), stepStatus("pes", "Not recorded")],
+    [t("nutrimap.summary.intervention"), summaryValue(summary.relatedIntervention, "No intervention linked"), stepStatus("intervention", "Not recorded")],
+    [t("nutrimap.summary.monitoring"), summaryValue(summary.monitoringStatus, "No monitoring entry"), stepStatus("monitoring", "Not recorded")],
+    [t("nutrimap.summary.aiReview"), summaryValue(summary.aiReviewStatus, "No AI review recorded"), stepStatus("ai", "Not recorded")],
+    [t("nutrimap.summary.reportReadiness"), summaryValue(summary.reportReadiness, "Report not ready"), stepStatus("reports", "Not recorded")],
   ];
 
   return (
     <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-      {items.map(([label, value]) => (
+      {items.map(([label, value, status]) => (
         <div className="rounded-[14px] border border-[var(--np-color-border-soft)] bg-[var(--np-color-surface-muted)] p-3" key={label}>
           <p className="text-[10px] font-extrabold uppercase tracking-[0.12em] text-[var(--np-color-text-muted)]">{label}</p>
           <p className="mt-1 text-xs font-extrabold leading-5 text-[var(--np-color-text)]">{value}</p>
+          {status ? <p className="mt-1 text-[10px] font-bold text-[var(--np-color-text-muted)]">{cleanClinicalText(status)}</p> : null}
         </div>
       ))}
     </div>
   );
 }
 
-function NutritionConnections({ relatedSystems, onSelectSystem }) {
+function NutritionConnections({ relatedSystems, selectOrgan }) {
   const { t } = useTranslation();
   if (!relatedSystems.length) return null;
   return (
-    <section className="mt-4 rounded-[18px] border border-[var(--np-color-border-soft)] bg-[var(--np-color-surface-muted)] p-3">
+    <section className="rounded-[18px] border border-[var(--np-color-border-soft)] bg-[var(--np-color-surface-muted)] p-3">
       <p className="flex items-center gap-2 text-xs font-extrabold uppercase tracking-[0.12em] text-[var(--np-color-brand)]"><Network className="h-4 w-4" />{t("nutrimap.organRelationships")}</p>
       <div className="mt-3 flex flex-wrap gap-2">
         {relatedSystems.map((system) => (
-          <button className="rounded-full border border-[var(--np-color-border)] bg-white px-3 py-1.5 text-xs font-extrabold text-[var(--np-color-text)] transition hover:border-[var(--np-color-brand)] hover:text-[var(--np-color-brand)]" key={system.id} onClick={() => onSelectSystem(system.id)} type="button">
+          <button className="rounded-full border border-[var(--np-color-border)] bg-white px-3 py-1.5 text-xs font-extrabold text-[var(--np-color-text)] transition hover:border-[var(--np-color-brand)] hover:text-[var(--np-color-brand)]" key={system.id} onClick={() => selectOrgan(system.id)} type="button">
             {system.shortLabel || system.label}
           </button>
         ))}
@@ -207,42 +216,48 @@ function NutritionConnections({ relatedSystems, onSelectSystem }) {
   );
 }
 
-function OrganTimeline({ timeline = [] }) {
+function OrganTimeline({ organSummary }) {
   const { t } = useTranslation();
-  if (!timeline.length) return null;
+  const entries = organSummary?.timeline || [];
+
   return (
-    <section className="mt-4 rounded-[18px] border border-[var(--np-color-border-soft)] bg-white p-3">
+    <section className="rounded-[18px] border border-[var(--np-color-border-soft)] bg-white p-3">
       <p className="text-xs font-extrabold uppercase tracking-[0.12em] text-[var(--np-color-brand)]">{t("nutrimap.organTimeline")}</p>
       <div className="mt-3 space-y-2">
-        {timeline.map((item) => (
-          <div className="rounded-[14px] bg-[var(--np-color-surface-muted)] p-3" key={item.stage}>
+        {entries.length ? entries.map((item) => (
+          <div className="rounded-[14px] bg-[var(--np-color-surface-muted)] p-3" key={`${item.source}-${item.title}`}>
             <div className="flex items-center justify-between gap-2">
               <div>
-                <p className="text-sm font-extrabold text-[var(--np-color-text)]">{item.stage}</p>
-                <p className="text-[11px] font-bold text-[var(--np-color-text-muted)]">{item.date}</p>
+                <p className="text-sm font-extrabold text-[var(--np-color-text)]">{item.title}</p>
+                <p className="text-[11px] font-bold text-[var(--np-color-text-muted)]">{item.date || item.source}</p>
               </div>
               <span className="np-badge np-badge-secondary">{item.status}</span>
             </div>
-            <p className="mt-1 text-xs font-bold leading-5 text-[var(--np-color-text-muted)]">{item.note}</p>
+            <p className="mt-1 text-xs font-bold leading-5 text-[var(--np-color-text-muted)]">{item.description}</p>
           </div>
-        ))}
+        )) : (
+          <p className="rounded-[14px] bg-[var(--np-color-surface-muted)] p-3 text-xs font-bold text-[var(--np-color-text-muted)]">
+            No timeline entry recorded.
+          </p>
+        )}
       </div>
     </section>
   );
 }
 
-function OrganQuickActions({ onCreateTask, onGenerateReport, onOpenAiCenter, onOpenClinicalHub, onOpenLabs }) {
+function OrganQuickActions({ onCreateTask, onGenerateReport, onOpenAiCenter, onOpenClinicalHub, onOpenDietPlan, onOpenLabs }) {
   const actions = [
     ["Clinical Hub", onOpenClinicalHub],
-    ["AI Center", onOpenAiCenter],
     ["Laboratory Results", onOpenLabs],
+    ["Diet Plan", onOpenDietPlan],
+    ["AI Center", onOpenAiCenter],
     ["Reports", onGenerateReport],
     ["Follow-up task", onCreateTask],
   ];
   return (
-    <section className="mt-4 grid grid-cols-1 gap-2 sm:grid-cols-2">
+    <section className="mt-4 grid grid-cols-2 gap-2 lg:grid-cols-3">
       {actions.map(([label, handler]) => (
-        <button className="rounded-[14px] border border-[var(--np-color-border)] bg-white px-3 py-2 text-xs font-extrabold text-[var(--np-color-text-muted)] transition hover:border-[var(--np-color-brand)] hover:text-[var(--np-color-brand)]" key={label} onClick={handler} type="button">
+        <button className="min-h-10 rounded-[14px] border border-[var(--np-color-border)] bg-white px-3 py-2 text-xs font-extrabold text-[var(--np-color-text-muted)] transition hover:border-[var(--np-color-brand)] hover:text-[var(--np-color-brand)]" key={label} onClick={handler} type="button">
           {label}
         </button>
       ))}
@@ -254,15 +269,217 @@ function NutriMapPanelSection({ section }) {
   return (
     <div className="rounded-[16px] border border-[var(--np-color-border-soft)] bg-[var(--np-color-surface-muted)] p-3">
       <p className="text-xs font-extrabold uppercase tracking-[0.12em] text-[var(--np-color-text-muted)]">{section.title}</p>
-      {section.items ? (
+      {section.rows ? (
+        <div className="mt-2 grid grid-cols-1 gap-2 md:grid-cols-2">
+          {section.rows.map((row) => (
+            <div className="rounded-[14px] bg-white p-3" key={`${row.label}-${row.value}`}>
+              <div className="flex items-start justify-between gap-3">
+                <p className="text-xs font-extrabold text-[var(--np-color-text)]">{row.label}</p>
+                <span className="text-[10px] font-bold text-[var(--np-color-text-muted)]">{row.meta}</span>
+              </div>
+              <p className="mt-1 text-sm font-extrabold text-[var(--np-color-brand)]">{cleanClinicalText(row.value)}</p>
+            </div>
+          ))}
+        </div>
+      ) : section.items ? (
         <div className="mt-2 flex flex-wrap gap-2">
-          {section.items.map((item) => <span className="rounded-full bg-white px-3 py-1 text-xs font-extrabold text-[var(--np-color-text)]" key={item}>{item}</span>)}
+          {section.items.map((item) => <span className="rounded-full bg-white px-3 py-1 text-xs font-extrabold text-[var(--np-color-text)]" key={item}>{cleanClinicalText(item)}</span>)}
         </div>
       ) : (
-        <p className="mt-2 text-sm font-bold leading-6 text-[var(--np-color-text)]">{section.value}</p>
+        <p className="mt-2 text-sm font-bold leading-6 text-[var(--np-color-text)]">{cleanClinicalText(section.value)}</p>
       )}
     </div>
   );
+}
+
+function buildLiveTabSections(activeTab, system, organSummary, patientWorkflow) {
+  if (activeTab === "labs") {
+    const labRows = organSummary?.labs?.length
+      ? organSummary.labs.map((lab) => ({
+        label: lab.label,
+        meta: `${lab.status}${lab.date ? ` · ${lab.date}` : ""}${lab.trend ? ` · ${lab.trend}` : ""}`,
+        value: lab.value === "Not recorded" ? "Not recorded" : `${lab.value}${lab.unit ? ` ${lab.unit}` : ""}`,
+      }))
+      : [{ label: "Laboratory", meta: "Missing", value: "No related laboratory result" }];
+    return [
+      { title: "Related laboratory values", rows: labRows },
+      { title: "Laboratory action", value: "Open Laboratory Results to add or review formal lab values." },
+    ];
+  }
+
+  if (activeTab === "assessment") {
+    const fieldRows = organSummary?.fields?.length
+      ? organSummary.fields.map((field) => ({
+        label: field.label,
+        meta: field.value === "Not recorded" ? "Missing" : "Recorded",
+        value: field.value,
+      }))
+      : [{ label: "Assessment", meta: "Missing", value: "No assessment recorded" }];
+    return [
+      { title: "Mapped assessment fields", rows: fieldRows },
+      { title: "Completion status", value: `${organSummary?.completedCount || 0} of ${organSummary?.totalCount || 0} mapped items recorded.` },
+    ];
+  }
+
+  if (activeTab === "intervention") {
+    const pesStatus = patientWorkflow?.steps?.find((step) => step.id === "pes")?.status || "Not recorded";
+    const interventionStatus = patientWorkflow?.steps?.find((step) => step.id === "intervention")?.status || "No intervention linked";
+    const dietPlanStatus = patientWorkflow?.steps?.find((step) => step.id === "dietPlan")?.status || "No active diet plan";
+    return [
+      { title: "Nutrition diagnosis", value: pesStatus },
+      { title: "Nutrition intervention", value: interventionStatus },
+      { title: "Diet plan", value: dietPlanStatus },
+    ];
+  }
+
+  if (activeTab === "ai") {
+    return [
+      { title: "Rule-based clinical considerations", items: ["Based only on available patient data", `${organSummary?.missingCount || 0} mapped item(s) missing`, "Clinician review required"] },
+      { title: "AI safety", value: "No diagnosis or prescription is generated from NutriMap." },
+    ];
+  }
+
+  if (activeTab === "research") {
+    return [
+      { title: "Research context", value: "No de-identified research integration is connected for this organ yet." },
+      { title: "Safety boundary", value: "Research data is not mixed with patient care data." },
+    ];
+  }
+
+  return [
+    { title: "Current Clinical Status", value: organSummary?.status || statusLabel(system.status) },
+    { title: "Main Concern", value: organSummary?.missingCount ? `${organSummary.missingCount} mapped item(s) missing.` : "No mapped data gap detected." },
+    { title: "Clinical Notes", value: system.focus },
+  ];
+}
+
+function OrganNotesEditor({ activePatient, organId, updatePatient }) {
+  const savedNote = activePatient?.organClinicalNotes?.[organId] || "";
+  const savedDetails = activePatient?.organClinicalDetails?.[organId] || {};
+  const [draft, setDraft] = useState({
+    followUpReminder: savedDetails.followUpReminder || "",
+    monitoringNote: savedDetails.monitoringNote || "",
+    note: savedNote,
+    reviewStatus: savedDetails.reviewStatus || "Needs Review",
+  });
+  const [saveStatus, setSaveStatus] = useState("Saved");
+
+  useEffect(() => {
+    const hasChanged =
+      draft.note !== savedNote ||
+      draft.followUpReminder !== (savedDetails.followUpReminder || "") ||
+      draft.monitoringNote !== (savedDetails.monitoringNote || "") ||
+      draft.reviewStatus !== (savedDetails.reviewStatus || "Needs Review");
+
+    if (!hasChanged) return undefined;
+    const timer = window.setTimeout(() => {
+      setSaveStatus("Saving...");
+      updatePatient?.({
+        ...activePatient,
+        organClinicalDetails: {
+          ...(activePatient?.organClinicalDetails || {}),
+          [organId]: {
+            followUpReminder: draft.followUpReminder,
+            monitoringNote: draft.monitoringNote,
+            reviewStatus: draft.reviewStatus,
+            savedAt: new Date().toISOString(),
+          },
+        },
+        organClinicalNotes: {
+          ...(activePatient?.organClinicalNotes || {}),
+          [organId]: draft.note,
+        },
+      });
+      setSaveStatus("Saved just now");
+    }, 1700);
+
+    return () => window.clearTimeout(timer);
+  }, [activePatient, draft, organId, savedDetails.followUpReminder, savedDetails.monitoringNote, savedDetails.reviewStatus, savedNote, updatePatient]);
+
+  function updateField(field, value) {
+    setDraft((current) => ({ ...current, [field]: value }));
+    setSaveStatus("Unsaved changes");
+  }
+
+  function cancelChanges() {
+    setDraft({
+      followUpReminder: savedDetails.followUpReminder || "",
+      monitoringNote: savedDetails.monitoringNote || "",
+      note: savedNote,
+      reviewStatus: savedDetails.reviewStatus || "Needs Review",
+    });
+    setSaveStatus("Saved");
+  }
+
+  return (
+    <section className="rounded-[18px] border border-[var(--np-color-border-soft)] bg-[var(--np-color-surface-muted)] p-3">
+      <div className="flex items-center justify-between gap-3">
+        <p className="text-xs font-extrabold uppercase tracking-[0.12em] text-[var(--np-color-brand)]">Organ clinical note</p>
+        <span className="text-[11px] font-bold text-[var(--np-color-text-muted)]">{saveStatus}</span>
+      </div>
+      <label className="mt-3 block text-xs font-extrabold text-[var(--np-color-text-muted)]">
+        Review status
+        <select className="np-form-control mt-1 min-h-10" value={draft.reviewStatus} onChange={(event) => updateField("reviewStatus", event.target.value)}>
+          <option>Needs Review</option>
+          <option>Monitoring</option>
+          <option>Reviewed</option>
+        </select>
+      </label>
+      <label className="mt-3 block text-xs font-extrabold text-[var(--np-color-text-muted)]">
+        Clinical note
+        <textarea className="np-form-control mt-1 min-h-24" placeholder="No organ note recorded." value={draft.note} onChange={(event) => updateField("note", event.target.value)} />
+      </label>
+      <label className="mt-3 block text-xs font-extrabold text-[var(--np-color-text-muted)]">
+        Follow-up reminder
+        <textarea className="np-form-control mt-1 min-h-20" placeholder="No follow-up recorded." value={draft.followUpReminder} onChange={(event) => updateField("followUpReminder", event.target.value)} />
+      </label>
+      <label className="mt-3 block text-xs font-extrabold text-[var(--np-color-text-muted)]">
+        Monitoring note
+        <textarea className="np-form-control mt-1 min-h-20" placeholder="No monitoring entry." value={draft.monitoringNote} onChange={(event) => updateField("monitoringNote", event.target.value)} />
+      </label>
+      <div className="mt-3 flex justify-end gap-2">
+        <button className="np-button np-button-secondary min-h-10 px-4 py-2 text-xs" onClick={cancelChanges} type="button">Cancel</button>
+        <button className="np-button np-button-primary min-h-10 px-4 py-2 text-xs" onClick={() => updatePatient?.({ ...activePatient, organClinicalNotes: { ...(activePatient?.organClinicalNotes || {}), [organId]: draft.note }, organClinicalDetails: { ...(activePatient?.organClinicalDetails || {}), [organId]: { ...draft, savedAt: new Date().toISOString() } } })} type="button">Save</button>
+      </div>
+    </section>
+  );
+}
+
+function cleanClinicalText(value) {
+  return String(value || "Not recorded")
+    .replaceAll("placeholder", "not recorded")
+    .replaceAll("Placeholder", "Not recorded")
+    .replaceAll("not connected yet", "not recorded")
+    .replaceAll("Not connected yet", "Not recorded")
+    .replaceAll("future connection", "recorded data")
+    .replaceAll("Future connection", "Recorded data")
+    .replaceAll("pending Clinical Hub connection", "not recorded")
+    .replaceAll("pending care-plan connection", "not recorded")
+    .replaceAll("pending safety workflow", "clinician review required")
+    .replaceAll("will appear here", "is not recorded")
+    .replaceAll("will read from", "is not recorded in")
+    .replace(/\bnot recorded\s+not recorded\b/gi, "Not recorded")
+    .replace(/\bNot recorded\s*-\s*Not recorded\b/g, "Not recorded");
+}
+
+function summaryList(items = [], fallback) {
+  const cleanItems = items.map(cleanClinicalText).filter((item) => item && !/^not recorded$/i.test(item));
+  if (!cleanItems.length) return fallback;
+  return cleanItems.slice(0, 2).join(" · ");
+}
+
+function summaryValue(value, fallback) {
+  const cleanValue = cleanClinicalText(value);
+  if (!cleanValue || /^not recorded$/i.test(cleanValue) || cleanValue.toLowerCase().includes("not recorded")) return fallback;
+  return cleanValue;
+}
+
+function statusLabel(status) {
+  if (status === "Green") return "Stable / OK";
+  if (status === "Yellow") return "Needs Review";
+  if (status === "Orange") return "Monitor Closely";
+  if (status === "Red") return "High Priority";
+  return "No Data";
 }
 
 function chipClass(active, emphasis, relationship) {
@@ -294,6 +511,9 @@ function nutriMapStatusDot(status) {
   if (status === "Yellow") return "bg-[var(--np-color-accent)]";
   return "bg-[var(--np-color-success)]";
 }
+
+
+
 
 
 

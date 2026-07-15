@@ -176,6 +176,14 @@ export default function SettingsCenter() {
                 <InfoRow label={t("settings.version")} value="0.0.0" />
                 <InfoRow label={t("settings.build")} value={t("settings.localViteBuild")} />
                 <InfoRow label={t("settings.credits")} value={t("app.tagline")} />
+                <InfoRow label={t("settings.fullBodyModel")} value={t("settings.fullBodyModelAttribution")} />
+                <InfoRow label={t("settings.skeletonModel")} value={t("settings.skeletonModelAttribution")} />
+                <InfoRow label={t("settings.heartModel")} value={t("settings.heartModelAttribution")} />
+                <InfoRow label={t("settings.digestiveModel")} value={t("settings.digestiveModelAttribution")} />
+                <InfoRow label={t("settings.liverModel")} value={t("settings.liverModelAttribution")} />
+                <InfoRow label={t("settings.kidneysModel")} value={t("settings.kidneysModelAttribution")} />
+                <InfoRow label={t("settings.pancreasModel")} value={t("settings.pancreasModelAttribution")} />
+                <InfoRow label={t("settings.circulatoryModel")} value={t("settings.circulatoryModelAttribution")} />
               </div>
             </NutriPanel>
 

@@ -359,6 +359,7 @@ function AppShell() {
             onNavigate={setPage}
             onOpenClinicalHub={openPatientWorkspace}
             intelligence={intelligence}
+            updatePatient={updatePatient}
             workflow={workflow}
           />
         )}
