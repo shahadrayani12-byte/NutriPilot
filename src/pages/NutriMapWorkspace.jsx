@@ -3,6 +3,7 @@ import { Activity, ClipboardList, Network } from "lucide-react";
 
 import { NutriMapClinicalPanel, NutriMapStage } from "../components/NutriMap/NutriMapShared";
 import { getAnatomyLayerForOrgan } from "../data/anatomyLayers";
+import { MUSCLE_REGION_DEFAULT_ID, getMuscleRegion } from "../data/nutrimapMuscleRegions";
 import { NUTRIMAP_SYSTEMS, NUTRITION_IMPACTS, getNutritionImpact } from "../data/nutrimapSystems";
 import { NUTRIMAP_ORGAN_CONFIG, buildOrganDataSummary } from "../data/nutrimapOrganConfig";
 import { ActivePatientBanner } from "../components/common/ActivePatientBanner";
@@ -10,25 +11,61 @@ import { useTranslation } from "../i18n";
 
 const SELECTED_ORGAN_KEY = "nutripilot.nutrimap.selectedOrgan.v1";
 const DRAWER_STATE_KEY = "nutripilot.nutrimap.drawerState.v1";
+const BODY_NAVIGATOR_SYSTEM = {
+  connections: [],
+  focus: "Select a body region or system to view its clinical nutrition context.",
+  id: "body-navigator",
+  label: "Body Navigator",
+  shortLabel: "Body Navigator",
+  status: "Gray",
+  statusSummary: {
+    aiReviewStatus: "Select a system to review",
+    monitoringStatus: "Select a system to review",
+    relatedAssessments: [],
+    relatedDiagnosis: "Select a body region or system",
+    relatedIntervention: "Select a body region or system",
+    relatedLabs: [],
+    reportReadiness: "Select a system to review",
+  },
+};
 
-export default function NutriMapWorkspace({ activePatient, initialSystemId = "brain", onNavigate, onOpenClinicalHub, updatePatient, workflow }) {
+const BODY_NAVIGATOR_SUMMARY = {
+  assessments: [],
+  clinicalHubTab: "summary",
+  completeness: 0,
+  completedCount: 0,
+  fields: [],
+  labs: [],
+  lastUpdated: "Not recorded",
+  missingCount: 0,
+  relatedLabsCount: 0,
+  status: "Body Navigator",
+  statusColor: "Gray",
+  timeline: [],
+  totalCount: 0,
+};
+
+export default function NutriMapWorkspace({ activePatient, aiSummary, initialSystemId = null, intelligence, onNavigate, onOpenClinicalHub, reports = [], schedule = [], tasks = [], updatePatient, workflow }) {
   const { language } = useTranslation();
   const [selectedOrganId, setSelectedOrganId] = useState(() => {
     const savedOrganId = localStorage.getItem(SELECTED_ORGAN_KEY);
-    if (NUTRIMAP_ORGAN_CONFIG[savedOrganId]) return savedOrganId;
-    if (NUTRIMAP_ORGAN_CONFIG[initialSystemId]) return initialSystemId;
-    return "brain";
+    if (savedOrganId === "body-navigator") return null;
+    if (initialSystemId && NUTRIMAP_ORGAN_CONFIG[initialSystemId]) return initialSystemId;
+    return null;
   });
+  const [selectedMuscleRegionId, setSelectedMuscleRegionId] = useState(MUSCLE_REGION_DEFAULT_ID);
   const [activeImpactId, setActiveImpactId] = useState("");
   const [drawerState, setDrawerState] = useState(() => localStorage.getItem(DRAWER_STATE_KEY) || "open");
   const panelRef = useRef(null);
-  const selectedOrgan = useMemo(() => NUTRIMAP_SYSTEMS.find((system) => system.id === selectedOrganId), [selectedOrganId]);
-  const activeLayer = useMemo(() => getAnatomyLayerForOrgan(selectedOrganId), [selectedOrganId]);
+  const selectedSystemId = selectedOrganId && NUTRIMAP_ORGAN_CONFIG[selectedOrganId] ? selectedOrganId : null;
+  const selectedOrgan = NUTRIMAP_SYSTEMS.find((system) => system.id === selectedSystemId) || BODY_NAVIGATOR_SYSTEM;
+  const selectedMuscleRegion = useMemo(() => getMuscleRegion(selectedMuscleRegionId), [selectedMuscleRegionId]);
+  const activeLayer = getAnatomyLayerForOrgan(selectedSystemId);
   const activeLayerId = activeLayer.id;
   const activeImpact = getNutritionImpact(activeImpactId);
   const organSummary = useMemo(
-    () => buildOrganDataSummary(activePatient, selectedOrganId, workflow),
-    [activePatient, selectedOrganId, workflow],
+    () => selectedSystemId ? buildOrganDataSummary(activePatient, selectedSystemId, workflow) : BODY_NAVIGATOR_SUMMARY,
+    [activePatient, selectedSystemId, workflow],
   );
   const organSummaries = useMemo(
     () => Object.fromEntries(NUTRIMAP_SYSTEMS.map((system) => [system.id, buildOrganDataSummary(activePatient, system.id, workflow)])),
@@ -37,6 +74,10 @@ export default function NutriMapWorkspace({ activePatient, initialSystemId = "br
   const liveSystems = useMemo(
     () => NUTRIMAP_SYSTEMS.map((system) => ({ ...system, status: organSummaries[system.id]?.statusColor || system.status })),
     [organSummaries],
+  );
+  const bodyNavigatorOverview = useMemo(
+    () => buildBodyNavigatorOverview(activePatient, organSummaries, { aiSummary, intelligence, reports, schedule, tasks }),
+    [activePatient, aiSummary, intelligence, organSummaries, reports, schedule, tasks],
   );
   const impactEmphasis = useMemo(() => {
     if (!activeImpact) return {};
@@ -56,11 +97,30 @@ export default function NutriMapWorkspace({ activePatient, initialSystemId = "br
       console.debug("SELECT_ORGAN", organId);
     }
     setSelectedOrganId(organId);
+    if (organId !== "muscles") {
+      setSelectedMuscleRegionId(MUSCLE_REGION_DEFAULT_ID);
+    }
     setDrawerState("open");
   }, []);
 
+  const returnToBodyNavigator = useCallback(() => {
+    setSelectedOrganId(null);
+    setSelectedMuscleRegionId(MUSCLE_REGION_DEFAULT_ID);
+    setActiveImpactId("");
+    setDrawerState("open");
+  }, []);
+
+  const selectMuscleRegion = useCallback((regionId) => {
+    const region = getMuscleRegion(regionId);
+    setSelectedMuscleRegionId(region.id);
+    setDrawerState("open");
+    if (import.meta.env.DEV) {
+      console.debug("SELECT_MUSCLE_REGION", region.id);
+    }
+  }, []);
+
   useEffect(() => {
-    localStorage.setItem(SELECTED_ORGAN_KEY, selectedOrganId);
+    localStorage.setItem(SELECTED_ORGAN_KEY, selectedOrganId || "body-navigator");
   }, [selectedOrganId]);
 
   useEffect(() => {
@@ -68,35 +128,17 @@ export default function NutriMapWorkspace({ activePatient, initialSystemId = "br
   }, [drawerState]);
 
   useEffect(() => {
-    const handleNativeOrganSelect = (event) => {
-      const target = event.target?.closest?.("[data-organ-id]");
-      const organId = target?.dataset?.organId;
-      if (!NUTRIMAP_ORGAN_CONFIG[organId]) return;
-      setSelectedOrganId(organId);
-      setDrawerState("open");
-    };
-
-    document.addEventListener("pointerdown", handleNativeOrganSelect, true);
-    document.addEventListener("click", handleNativeOrganSelect, true);
-    document.addEventListener("focusin", handleNativeOrganSelect, true);
-
-    return () => {
-      document.removeEventListener("pointerdown", handleNativeOrganSelect, true);
-      document.removeEventListener("click", handleNativeOrganSelect, true);
-      document.removeEventListener("focusin", handleNativeOrganSelect, true);
-    };
-  }, []);
-
-  useEffect(() => {
     if (!import.meta.env.DEV) return;
     console.debug("NutriMap selected organ sync", {
       activePatientId: activePatient?.id,
-      panelDataOrganId: selectedOrganId,
-      selectedOrganId,
+      activeLayerId,
+      activeLayerPath: activeLayer.modelPath,
+      panelDataOrganId: selectedSystemId,
+      selectedOrganId: selectedSystemId,
       selectedOrganName: selectedOrgan?.label,
     });
-    console.debug("SELECTED_ORGAN_STATE", selectedOrganId);
-  }, [activePatient?.id, selectedOrgan?.label, selectedOrganId]);
+    console.debug("SELECTED_ORGAN_STATE", selectedSystemId);
+  }, [activeLayer.modelPath, activeLayerId, activePatient?.id, selectedOrgan?.label, selectedSystemId]);
 
   useEffect(() => {
     const handleEscape = (event) => {
@@ -109,6 +151,8 @@ export default function NutriMapWorkspace({ activePatient, initialSystemId = "br
   function selectImpact(impactId) {
     setActiveImpactId(impactId);
     const impact = getNutritionImpact(impactId);
+    if (selectedSystemId === "muscles" && ["protein", "vitamin-d", "omega-3"].includes(impactId)) return;
+    if (impact?.affectedSystems?.includes(selectedSystemId)) return;
     if (impact?.primarySystems?.length) {
       selectOrgan(impact.primarySystems[0]);
     }
@@ -150,17 +194,25 @@ export default function NutriMapWorkspace({ activePatient, initialSystemId = "br
                   <h2 className="np-heading-section">Interactive Body Map</h2>
                 </div>
               </div>
-              <span className="np-badge np-badge-secondary">{selectedOrgan?.label}</span>
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="np-badge np-badge-secondary">{selectedOrgan?.label}</span>
+                {selectedSystemId ? (
+                  <button className="np-button np-button-secondary min-h-9 px-3 py-1.5 text-xs" onClick={returnToBodyNavigator} type="button">
+                    Back to Body Map
+                  </button>
+                ) : null}
+              </div>
             </div>
 
             {import.meta.env.DEV ? (
               <div className="mb-4 rounded-[16px] border border-[var(--np-color-border-soft)] bg-white/85 px-3 py-2 text-xs font-extrabold text-[var(--np-color-text-muted)]">
-                Selected organ: {selectedOrganId} / Active layer: {activeLayerId} / Panel organ: {selectedOrgan?.id} / Model path: {activeLayer.modelPath}
+                Selected organ: {selectedSystemId} / Active layer: {activeLayerId} / Panel organ: {selectedOrgan?.id} / Model path: {activeLayer.modelPath}
+                {selectedSystemId === "muscles" ? ` / Muscle region: ${selectedMuscleRegion.id}` : ""}
               </div>
             ) : null}
 
-            <OrganNavigationGrid
-              selectedOrganId={selectedOrganId}
+              <OrganNavigationGrid
+              selectedOrganId={selectedSystemId}
               impactEmphasis={impactEmphasis}
               selectOrgan={selectOrgan}
               organSummaries={organSummaries}
@@ -176,12 +228,15 @@ export default function NutriMapWorkspace({ activePatient, initialSystemId = "br
 
             <div className="grid grid-cols-1 gap-4 transition-all duration-300">
               <NutriMapStage
-                selectedOrganId={selectedOrganId}
+                key={`${selectedSystemId || "body-navigator"}-${activeLayerId}`}
+                selectedOrganId={selectedSystemId}
                 activeLayer={activeLayer}
                 activeLayerId={activeLayerId}
                 drawerOpen={false}
                 impactEmphasis={impactEmphasis}
                 selectOrgan={selectOrgan}
+                selectMuscleRegion={selectMuscleRegion}
+                selectedMuscleRegionId={selectedMuscleRegionId}
                 systems={liveSystems}
               />
 
@@ -191,7 +246,7 @@ export default function NutriMapWorkspace({ activePatient, initialSystemId = "br
               panelRef={panelRef}
                 onCollapse={() => setDrawerState("collapsed")}
                 onClose={() => setDrawerState("closed")}
-                onCreateTask={() => openPlaceholderWorkflow("monitoring")}
+                onCreateTask={() => onNavigate?.("tasks")}
                 onExpand={() => setDrawerState("open")}
                 onGenerateReport={() => onNavigate?.("reports")}
                 onOpenAiCenter={() => onNavigate?.("ai")}
@@ -199,11 +254,16 @@ export default function NutriMapWorkspace({ activePatient, initialSystemId = "br
                 onOpenDietPlan={() => onNavigate?.("diet-plans")}
                 onOpenLabs={() => openPlaceholderWorkflow("laboratory")}
                 selectOrgan={selectOrgan}
+                selectMuscleRegion={selectMuscleRegion}
+                selectedMuscleRegionId={selectedMuscleRegionId}
+                activeImpactId={activeImpactId}
+                bodyNavigatorOverview={bodyNavigatorOverview}
                 organSummary={organSummary}
                 patientWorkflow={workflow}
-                system={liveSystems.find((system) => system.id === selectedOrganId)}
+                system={liveSystems.find((system) => system.id === selectedSystemId) || BODY_NAVIGATOR_SYSTEM}
                 systems={liveSystems}
                 updatePatient={updatePatient}
+                onBackToBodyNavigator={selectedSystemId ? returnToBodyNavigator : null}
               />
             </div>
           </section>
@@ -225,7 +285,12 @@ function OrganDrawer({
   onOpenClinicalHub,
   onOpenDietPlan,
   onOpenLabs,
+  onBackToBodyNavigator,
   selectOrgan,
+  selectMuscleRegion,
+  selectedMuscleRegionId,
+  activeImpactId,
+  bodyNavigatorOverview,
   organSummary,
   panelRef,
   patientWorkflow,
@@ -262,6 +327,7 @@ function OrganDrawer({
   return (
     <aside className="min-w-0 overflow-hidden rounded-[28px] border border-[var(--np-color-border-soft)] bg-white shadow-[var(--np-shadow-card)]" aria-expanded="true" ref={panelRef}>
       <NutriMapClinicalPanel
+        key={system.id}
         activePatient={activePatient}
         onCollapse={onCollapse}
         onClose={onClose}
@@ -271,7 +337,12 @@ function OrganDrawer({
         onOpenClinicalHub={onOpenClinicalHub}
         onOpenDietPlan={onOpenDietPlan}
         onOpenLabs={onOpenLabs}
+        onBackToBodyNavigator={onBackToBodyNavigator}
         selectOrgan={selectOrgan}
+        selectMuscleRegion={selectMuscleRegion}
+        selectedMuscleRegionId={selectedMuscleRegionId}
+        activeImpactId={activeImpactId}
+        bodyNavigatorOverview={bodyNavigatorOverview}
         organSummary={organSummary}
         patientWorkflow={patientWorkflow}
         system={system}
@@ -282,12 +353,112 @@ function OrganDrawer({
   );
 }
 
+function buildBodyNavigatorOverview(activePatient, organSummaries, sharedState) {
+  const summaries = Object.values(organSummaries || {});
+  const needsReviewCount = summaries.filter((summary) => ["Needs Review", "Monitor Closely", "High Priority"].includes(summary.status)).length;
+  const missingDataCount = summaries.filter((summary) => summary.missingCount > 0).length;
+  const highestPriority = summaries.find((summary) => summary.status === "High Priority")?.status
+    || summaries.find((summary) => summary.status === "Monitor Closely")?.status
+    || summaries.find((summary) => summary.status === "Needs Review")?.status
+    || summaries.find((summary) => summary.status === "Stable / OK")?.status
+    || "No Data";
+  const relatedReports = (sharedState.reports || []).filter((report) =>
+    !report.patientId || report.patientId === activePatient?.id || report.patient === activePatient?.fullName,
+  );
+  const relatedSchedule = (sharedState.schedule || []).filter((appointment) =>
+    appointment.patientId === activePatient?.id || appointment.patientName === activePatient?.fullName,
+  );
+
+  return {
+    activeAiState: sharedState.aiSummary?.generatedAt || sharedState.intelligence?.riskEngine?.level || "Not recorded",
+    mappedSystemsCount: summaries.length,
+    missingDataCount,
+    needsReviewCount,
+    highestPriority,
+    recentUpdate: activePatient?.updatedAt || activePatient?.lastUpdated || activePatient?.lastVisit || "Not recorded",
+    relatedReportsCount: relatedReports.length,
+    relatedScheduleCount: relatedSchedule.length,
+    relatedTasksCount: (sharedState.tasks || []).filter((task) => task.relatedPatient === activePatient?.fullName || task.patientId === activePatient?.id).length,
+  };
+}
+
 function OrganNavigationGrid({ selectedOrganId, impactEmphasis, selectOrgan, organSummaries, systems }) {
+  const TAP_THRESHOLD = 10;
+  const pointerStateRef = useRef({
+    dragging: false,
+    organId: "",
+    startX: 0,
+    startY: 0,
+    suppressClick: false,
+  });
+
   const handleOrganPress = useCallback((event) => {
     const organId = event.currentTarget.dataset.organId;
     if (!organId) return;
     selectOrgan(organId);
   }, [selectOrgan]);
+
+  const handlePointerDown = useCallback((event) => {
+    pointerStateRef.current = {
+      dragging: false,
+      organId: event.currentTarget.dataset.organId || "",
+      startX: event.clientX,
+      startY: event.clientY,
+      suppressClick: false,
+    };
+    if (import.meta.env.DEV) {
+      console.debug("NutriMap organ pointerDown", {
+        organId: pointerStateRef.current.organId,
+        x: event.clientX,
+        y: event.clientY,
+      });
+    }
+  }, []);
+
+  const handlePointerMove = useCallback((event) => {
+    const state = pointerStateRef.current;
+    const distance = Math.hypot(event.clientX - state.startX, event.clientY - state.startY);
+    if (distance > TAP_THRESHOLD) {
+      state.dragging = true;
+      state.suppressClick = true;
+    }
+  }, []);
+
+  const handlePointerUp = useCallback((event) => {
+    const state = pointerStateRef.current;
+    const organId = event.currentTarget.dataset.organId;
+    const distance = Math.hypot(event.clientX - state.startX, event.clientY - state.startY);
+    const isTap = state.organId === organId && distance <= TAP_THRESHOLD && !state.dragging;
+    if (import.meta.env.DEV) {
+      console.debug("NutriMap organ pointerUp", {
+        distance: Number(distance.toFixed(2)),
+        dragging: state.dragging,
+        organId,
+        tapped: isTap,
+      });
+    }
+    if (isTap) {
+      state.suppressClick = true;
+      selectOrgan(organId);
+      window.setTimeout(() => {
+        pointerStateRef.current.suppressClick = false;
+      }, 90);
+      return;
+    }
+    window.setTimeout(() => {
+      pointerStateRef.current.suppressClick = false;
+    }, 80);
+  }, [selectOrgan]);
+
+  const handleOrganClick = useCallback((event) => {
+    if (pointerStateRef.current.suppressClick) {
+      event.preventDefault();
+      pointerStateRef.current.suppressClick = false;
+      return;
+    }
+    if (event.detail === 0) return;
+    handleOrganPress(event);
+  }, [handleOrganPress]);
 
   const handleOrganKeyDown = useCallback((event) => {
     if (event.key !== "Enter" && event.key !== " ") return;
@@ -310,7 +481,7 @@ function OrganNavigationGrid({ selectedOrganId, impactEmphasis, selectOrgan, org
           <h2 className="text-sm font-extrabold text-[var(--np-color-text)]">Organ Navigation</h2>
         </div>
       </div>
-      <div className="grid grid-cols-2 gap-2 md:grid-cols-5">
+      <div className="grid touch-pan-x select-none grid-cols-2 gap-2 md:grid-cols-5">
         {systems.map((system) => {
           const isActive = selectedOrganId === system.id;
           const emphasis = impactEmphasis[system.id] || "none";
@@ -330,10 +501,11 @@ function OrganNavigationGrid({ selectedOrganId, impactEmphasis, selectOrgan, org
               }`}
               data-organ-id={system.id}
               key={system.id}
-              onClick={handleOrganPress}
-              onFocus={handleOrganPress}
+              onClick={handleOrganClick}
               onKeyDown={handleOrganKeyDown}
-              onPointerDown={handleOrganPress}
+              onPointerDown={handlePointerDown}
+              onPointerMove={handlePointerMove}
+              onPointerUp={handlePointerUp}
               type="button"
             >
               <span className="flex items-center justify-between gap-2">

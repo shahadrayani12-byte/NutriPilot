@@ -1,6 +1,7 @@
-﻿import { useEffect, useState } from "react";
+﻿import { useCallback, useEffect, useState } from "react";
 import { Activity, Brain, ChevronDown, ClipboardList, FlaskConical, Network, StickyNote, Target, X } from "lucide-react";
 import { useTranslation } from "../../i18n";
+import { MUSCLE_REGION_DEFAULT_ID, getMuscleRegion } from "../../data/nutrimapMuscleRegions";
 import { NutriMapModelStage } from "./NutriMapModelStage";
 
 export function HumanBodyPlaceholder({ size = "large" }) {
@@ -62,9 +63,10 @@ export function NutriMapBodyRegion({ active, emphasis = "none", label, position,
   );
 }
 
-export function NutriMapClinicalPanel({ activePatient, compact = false, onCollapse, onClose, onOpenAiCenter, onOpenClinicalHub, onOpenDietPlan, onOpenLabs, onCreateTask, onGenerateReport, selectOrgan, organSummary, patientWorkflow, system, systems = [], updatePatient }) {
+export function NutriMapClinicalPanel({ activeImpactId = "", activePatient, bodyNavigatorOverview, compact = false, onBackToBodyNavigator, onCollapse, onClose, onOpenAiCenter, onOpenClinicalHub, onOpenDietPlan, onOpenLabs, onCreateTask, onGenerateReport, selectOrgan, selectMuscleRegion, selectedMuscleRegionId = MUSCLE_REGION_DEFAULT_ID, organSummary, patientWorkflow, system, systems = [], updatePatient }) {
   const { t } = useTranslation();
   const [activeTab, setActiveTab] = useState("overview");
+  const isBodyNavigator = system.id === "body-navigator";
   const tabs = [
     { id: "overview", label: "Overview", icon: ClipboardList },
     { id: "labs", label: "Labs", icon: FlaskConical },
@@ -74,13 +76,69 @@ export function NutriMapClinicalPanel({ activePatient, compact = false, onCollap
     { id: "research", label: "Research", icon: Network },
     { id: "notes", label: "Notes", icon: StickyNote },
   ];
+  const isMusclePanel = system.id === "muscles";
+  const muscleRegion = getMuscleRegion(selectedMuscleRegionId);
+  const panelTitle = isMusclePanel ? muscleRegion.panelTitle : system.label;
   const relatedSystems = system.connections.map((systemId) => systems.find((item) => item.id === systemId)).filter(Boolean);
-  const activeSections = buildLiveTabSections(activeTab, system, organSummary, patientWorkflow);
+  const activeSections = isMusclePanel
+    ? buildMuscleTabSections(activeTab, activePatient, activeImpactId, muscleRegion, organSummary, patientWorkflow)
+    : buildLiveTabSections(activeTab, system, organSummary);
 
   useEffect(() => {
     if (!import.meta.env.DEV) return;
     console.debug("PANEL_ORGAN", system?.id);
   }, [system?.id]);
+
+  if (isBodyNavigator) {
+    return (
+      <aside className="flex flex-col bg-white">
+        <div className="sticky top-0 z-10 border-b border-[var(--np-color-border-soft)] bg-white/95 p-4 backdrop-blur">
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <p className="text-xs font-extrabold uppercase tracking-[0.14em] text-[var(--np-color-brand)]">{t("nutrimap.organIntelligencePanel")}</p>
+              <h3 className={`${compact ? "text-xl" : "text-2xl"} mt-2 font-extrabold text-[var(--np-color-text)]`}>Body Navigator</h3>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="np-badge np-badge-secondary">Explore</span>
+              <button aria-label="Collapse organ drawer" className="flex h-9 w-9 items-center justify-center rounded-full border border-[var(--np-color-border-soft)] text-[var(--np-color-text-muted)] hover:text-[var(--np-color-brand)]" onClick={onCollapse} type="button">
+                <ChevronDown className="h-4 w-4" />
+              </button>
+              <button aria-label="Close organ drawer" className="flex h-9 w-9 items-center justify-center rounded-full border border-[var(--np-color-border-soft)] text-[var(--np-color-text-muted)] hover:text-[var(--np-color-brand)]" onClick={onClose} type="button">
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+          </div>
+        </div>
+        <div className="p-4">
+          <section className="rounded-[20px] border border-[var(--np-color-border-soft)] bg-[var(--np-color-surface-muted)] p-4">
+            <p className="text-xs font-extrabold uppercase tracking-[0.12em] text-[var(--np-color-brand)]">Body Navigator</p>
+            <p className="mt-3 text-sm font-bold leading-6 text-[var(--np-color-text)]">
+              Select a body region or system to view its clinical nutrition context.
+            </p>
+            <p className="mt-2 text-xs font-bold leading-5 text-[var(--np-color-text-muted)]">
+              This is the neutral landing state. Patient data remains available, but no organ-specific interpretation is shown until a system is selected.
+            </p>
+            <div className="mt-4 grid grid-cols-2 gap-2">
+              <DrawerMetric label="Mapped systems" value={bodyNavigatorOverview?.mappedSystemsCount ?? systems.length} />
+              <DrawerMetric label="Needs review" value={bodyNavigatorOverview?.needsReviewCount ?? 0} />
+              <DrawerMetric label="Missing data" value={bodyNavigatorOverview?.missingDataCount ?? 0} />
+              <DrawerMetric label="Highest priority" value={bodyNavigatorOverview?.highestPriority || "No Data"} />
+            </div>
+            <p className="mt-3 text-xs font-bold text-[var(--np-color-text-muted)]">
+              Recent patient update: {bodyNavigatorOverview?.recentUpdate || "Not recorded"}
+            </p>
+          </section>
+          <section className="mt-4 grid grid-cols-2 gap-2 md:grid-cols-3">
+            {systems.map((item) => (
+              <button className="min-h-10 rounded-[14px] border border-[var(--np-color-border)] bg-white px-3 py-2 text-xs font-extrabold text-[var(--np-color-text-muted)] transition hover:border-[var(--np-color-brand)] hover:text-[var(--np-color-brand)]" key={item.id} onClick={() => selectOrgan(item.id)} type="button">
+                {item.shortLabel || item.label}
+              </button>
+            ))}
+          </section>
+        </div>
+      </aside>
+    );
+  }
 
   return (
     <aside className="flex flex-col bg-white">
@@ -88,7 +146,7 @@ export function NutriMapClinicalPanel({ activePatient, compact = false, onCollap
         <div className="flex items-start justify-between gap-3">
           <div>
             <p className="text-xs font-extrabold uppercase tracking-[0.14em] text-[var(--np-color-brand)]">{t("nutrimap.organIntelligencePanel")}</p>
-            <h3 className={`${compact ? "text-xl" : "text-2xl"} mt-2 font-extrabold text-[var(--np-color-text)]`}>{system.label}</h3>
+            <h3 className={`${compact ? "text-xl" : "text-2xl"} mt-2 font-extrabold text-[var(--np-color-text)]`}>{panelTitle}</h3>
           </div>
           <div className="flex items-center gap-2">
             <span className={nutriMapStatusBadge(organSummary?.statusColor || system.status)}>{organSummary?.status || statusLabel(system.status)}</span>
@@ -106,10 +164,21 @@ export function NutriMapClinicalPanel({ activePatient, compact = false, onCollap
           <DrawerMetric label="Missing items" value={organSummary?.missingCount ?? 0} />
           <DrawerMetric label="Last updated" value={organSummary?.lastUpdated || "Not recorded"} />
         </div>
+        {onBackToBodyNavigator ? (
+          <button className="mt-3 min-h-10 rounded-full border border-[var(--np-color-border)] bg-white px-4 py-2 text-xs font-extrabold text-[var(--np-color-brand)] transition hover:border-[var(--np-color-brand)]" onClick={onBackToBodyNavigator} type="button">
+            Back to Body Map
+          </button>
+        ) : null}
       </div>
 
       <div className="p-4">
         <OrganStatusSummary organSummary={organSummary} patientWorkflow={patientWorkflow} system={system} />
+        {isMusclePanel ? (
+          <MuscleRegionControls
+            muscleRegion={muscleRegion}
+            selectMuscleRegion={selectMuscleRegion}
+          />
+        ) : null}
 
         <div className="mt-4 flex gap-2 overflow-x-auto pb-1">
           {tabs.map((tab) => {
@@ -154,7 +223,7 @@ function DrawerMetric({ label, value }) {
     </div>
   );
 }
-export function NutriMapStage({ activeLayer, activeLayerId, selectedOrganId, drawerOpen = false, impactEmphasis = {}, systems, selectOrgan, size = "large" }) {
+export function NutriMapStage({ activeLayer, activeLayerId, selectedOrganId, selectedMuscleRegionId = MUSCLE_REGION_DEFAULT_ID, drawerOpen = false, impactEmphasis = {}, systems, selectOrgan, selectMuscleRegion, size = "large" }) {
   return (
     <NutriMapModelStage
       activeLayer={activeLayer}
@@ -162,10 +231,46 @@ export function NutriMapStage({ activeLayer, activeLayerId, selectedOrganId, dra
       drawerOpen={drawerOpen}
       impactEmphasis={impactEmphasis}
       selectOrgan={selectOrgan}
+      selectMuscleRegion={selectMuscleRegion}
       selectedOrganId={selectedOrganId}
+      selectedMuscleRegionId={selectedMuscleRegionId}
       size={size}
       systems={systems}
     />
+  );
+}
+
+function MuscleRegionControls({ muscleRegion, selectMuscleRegion }) {
+  const isOverview = muscleRegion.id === MUSCLE_REGION_DEFAULT_ID;
+  return (
+    <section className="mt-4 rounded-[18px] border border-[var(--np-color-border-soft)] bg-[var(--np-color-surface-muted)] p-3">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <div>
+          <p className="text-xs font-extrabold uppercase tracking-[0.12em] text-[var(--np-color-brand)]">
+            Related clinical context — clinician review required.
+          </p>
+          <p className="mt-1 text-xs font-bold text-[var(--np-color-text-muted)]">
+            {isOverview ? "Global muscle assessment view." : `Focused region: ${muscleRegion.label}.`}
+          </p>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          <button
+            className={`min-h-9 rounded-full border px-3 py-1.5 text-xs font-extrabold transition ${isOverview ? "border-[var(--np-color-brand)] bg-[var(--np-color-brand)] text-white" : "border-[var(--np-color-border)] bg-white text-[var(--np-color-text-muted)] hover:border-[var(--np-color-brand)] hover:text-[var(--np-color-brand)]"}`}
+            onClick={() => selectMuscleRegion?.(MUSCLE_REGION_DEFAULT_ID)}
+            type="button"
+          >
+            Muscle Overview
+          </button>
+          <button
+            className="min-h-9 rounded-full border border-[var(--np-color-border)] bg-white px-3 py-1.5 text-xs font-extrabold text-[var(--np-color-text-muted)] transition hover:border-[var(--np-color-brand)] hover:text-[var(--np-color-brand)]"
+            onClick={() => selectMuscleRegion?.(muscleRegion.id)}
+            type="button"
+          >
+            Focus Region
+          </button>
+        </div>
+      </div>
+    </section>
   );
 }
 
@@ -175,15 +280,16 @@ function OrganStatusSummary({ organSummary, patientWorkflow, system }) {
   const stepStatus = (stepId, fallback) => patientWorkflow?.steps?.find((step) => step.id === stepId)?.status || fallback;
   const labSummary = organSummary?.labs?.filter((lab) => lab.value !== "Not recorded").slice(0, 2).map((lab) => `${lab.label}: ${lab.value}${lab.unit ? ` ${lab.unit}` : ""}`).join(" · ");
   const assessmentSummary = organSummary?.fields?.filter((field) => field.value !== "Not recorded").slice(0, 2).map((field) => field.label).join(" · ");
+  const clinicalRows = Object.fromEntries((organSummary?.clinicalRows || []).map((row) => [row.label, row]));
   const items = [
-    [t("nutrimap.summary.currentStatus"), statusLabel(system.status)],
+    [t("nutrimap.summary.currentStatus"), organSummary?.status || statusLabel(system.status)],
     [t("nutrimap.summary.laboratoryMarkers"), labSummary || summaryList(summary.relatedLabs, "No related laboratory result"), stepStatus("labs", "Not recorded")],
     [t("nutrimap.summary.assessments"), assessmentSummary || summaryList(summary.relatedAssessments, "No assessment recorded"), stepStatus("assessment", "Not recorded")],
-    [t("nutrimap.summary.nutritionDiagnosis"), summaryValue(summary.relatedDiagnosis, "No nutrition diagnosis linked"), stepStatus("pes", "Not recorded")],
-    [t("nutrimap.summary.intervention"), summaryValue(summary.relatedIntervention, "No intervention linked"), stepStatus("intervention", "Not recorded")],
-    [t("nutrimap.summary.monitoring"), summaryValue(summary.monitoringStatus, "No monitoring entry"), stepStatus("monitoring", "Not recorded")],
-    [t("nutrimap.summary.aiReview"), summaryValue(summary.aiReviewStatus, "No AI review recorded"), stepStatus("ai", "Not recorded")],
-    [t("nutrimap.summary.reportReadiness"), summaryValue(summary.reportReadiness, "Report not ready"), stepStatus("reports", "Not recorded")],
+    [t("nutrimap.summary.nutritionDiagnosis"), clinicalRows["PES diagnosis"]?.value || summaryValue(summary.relatedDiagnosis, "No nutrition diagnosis linked"), clinicalRows["PES diagnosis"]?.status || stepStatus("pes", "Not recorded")],
+    [t("nutrimap.summary.intervention"), clinicalRows["Nutrition intervention"]?.value || summaryValue(summary.relatedIntervention, "No intervention linked"), clinicalRows["Nutrition intervention"]?.status || stepStatus("intervention", "Not recorded")],
+    [t("nutrimap.summary.monitoring"), clinicalRows.Monitoring?.value || summaryValue(summary.monitoringStatus, "No monitoring entry"), clinicalRows.Monitoring?.status || stepStatus("monitoring", "Not recorded")],
+    [t("nutrimap.summary.aiReview"), clinicalRows["AI review"]?.value || summaryValue(summary.aiReviewStatus, "No AI review recorded"), clinicalRows["AI review"]?.status || stepStatus("ai", "Not recorded")],
+    [t("nutrimap.summary.reportReadiness"), clinicalRows.Reports?.value || summaryValue(summary.reportReadiness, "Report not ready"), clinicalRows.Reports?.status || stepStatus("reports", "Not recorded")],
   ];
 
   return (
@@ -292,7 +398,93 @@ function NutriMapPanelSection({ section }) {
   );
 }
 
-function buildLiveTabSections(activeTab, system, organSummary, patientWorkflow) {
+function buildMuscleTabSections(activeTab, activePatient, activeImpactId, muscleRegion, organSummary, patientWorkflow) {
+  if (activeTab === "labs") {
+    return [
+      {
+        rows: [
+          muscleLabRow(activePatient, "Albumin"),
+          muscleLabRow(activePatient, "Creatinine"),
+          muscleLabRow(activePatient, "Vitamin D"),
+          muscleLabRow(activePatient, "CRP"),
+          muscleLabRow(activePatient, "Sodium"),
+          muscleLabRow(activePatient, "Potassium"),
+        ],
+        title: "Muscle-related laboratory markers",
+      },
+      { title: "Laboratory boundary", value: "Values are displayed only when recorded. Open Laboratory Results for formal review." },
+    ];
+  }
+
+  if (activeTab === "assessment") {
+    return [
+      {
+        rows: [
+          patientDataRow(activePatient, "Estimated muscle mass", ["estimatedMuscleMass", "muscleMass", "bodyComposition"]),
+          patientDataRow(activePatient, "Mid-upper arm circumference", ["muac", "MUAC", "midUpperArmCircumference"]),
+          patientDataRow(activePatient, "Calf circumference", ["calfCircumference"]),
+          patientDataRow(activePatient, "Handgrip strength", ["handgripStrength"]),
+          patientDataRow(activePatient, "Physical activity level", ["physicalActivity", "activityLevel", "physicalActivityLevel"]),
+          patientDataRow(activePatient, "Recent weight loss", ["recentWeightLoss", "recentWeightChange", "weightChange"]),
+          patientDataRow(activePatient, "Appetite", ["appetite", "appetiteLevel", "appetiteStatus"]),
+          patientDataRow(activePatient, "Protein intake", ["proteinIntake", "proteinTarget", "proteinRequirement"]),
+          patientDataRow(activePatient, "Energy intake", ["energyIntake", "energyTarget", "caloriesTarget"]),
+        ],
+        title: "Muscle assessment data",
+      },
+      { title: "Assessment completeness", value: `${organSummary?.completedCount || 0} of ${organSummary?.totalCount || 0} mapped muscle items recorded.` },
+    ];
+  }
+
+  if (activeTab === "intervention") {
+    const interventionStatus = patientWorkflow?.steps?.find((step) => step.id === "intervention")?.status || "No intervention linked";
+    const dietPlanStatus = patientWorkflow?.steps?.find((step) => step.id === "dietPlan")?.status || "No active diet plan";
+    return [
+      { title: "Nutrition intervention", value: interventionStatus },
+      { title: "Diet plan context", value: dietPlanStatus },
+      { title: "Region context", value: muscleRegionClinicalContext(muscleRegion, activePatient) },
+    ];
+  }
+
+  if (activeTab === "ai") {
+    return [
+      {
+        items: [
+          "Based only on available patient data",
+          "Clinical consideration — clinician review required",
+          "No diagnosis or exercise prescription generated",
+        ],
+        title: "Rule-based muscle review",
+      },
+      { title: "Nutrition impact context", value: muscleImpactContext(activeImpactId, activePatient) },
+    ];
+  }
+
+  if (activeTab === "research") {
+    return [
+      { title: "Research context", value: "No de-identified muscle-region research integration is connected yet." },
+      { title: "Safety boundary", value: "Research data is not mixed with patient care data." },
+    ];
+  }
+
+  return [
+    {
+      rows: [
+        { label: "Muscle status", meta: "Workflow", value: organSummary?.status || "Not recorded" },
+        patientDataRow(activePatient, "Protein adequacy", ["proteinAdequacy", "proteinIntake", "proteinTarget", "proteinRequirement"]),
+        patientDataRow(activePatient, "Physical activity", ["physicalActivity", "activityLevel", "physicalActivityLevel"]),
+        patientDataRow(activePatient, "Weight trend", ["weightTrend", "recentWeightChange", "weightChange"]),
+        patientDataRow(activePatient, "BMI", ["bmi", "BMI", "bodyMassIndex"]),
+        patientDataRow(activePatient, "Risk of muscle loss", ["muscleLossRisk", "muscleRisk", "sarcopeniaScreening"]),
+      ],
+      title: muscleRegion.id === MUSCLE_REGION_DEFAULT_ID ? "Global muscle overview" : `${muscleRegion.label} clinical context`,
+    },
+    { title: "Region-specific context", value: muscleRegionClinicalContext(muscleRegion, activePatient) },
+    { title: "Nutrition impact context", value: muscleImpactContext(activeImpactId, activePatient) },
+  ];
+}
+
+function buildLiveTabSections(activeTab, system, organSummary) {
   if (activeTab === "labs") {
     const labRows = organSummary?.labs?.length
       ? organSummary.labs.map((lab) => ({
@@ -318,23 +510,27 @@ function buildLiveTabSections(activeTab, system, organSummary, patientWorkflow) 
     return [
       { title: "Mapped assessment fields", rows: fieldRows },
       { title: "Completion status", value: `${organSummary?.completedCount || 0} of ${organSummary?.totalCount || 0} mapped items recorded.` },
+      { title: "Clinical consideration", value: "Clinical consideration — clinician review required." },
     ];
   }
 
   if (activeTab === "intervention") {
-    const pesStatus = patientWorkflow?.steps?.find((step) => step.id === "pes")?.status || "Not recorded";
-    const interventionStatus = patientWorkflow?.steps?.find((step) => step.id === "intervention")?.status || "No intervention linked";
-    const dietPlanStatus = patientWorkflow?.steps?.find((step) => step.id === "dietPlan")?.status || "No active diet plan";
+    const rows = organSummary?.clinicalRows?.filter((row) => ["PES diagnosis", "Nutrition intervention", "Diet plan", "Monitoring", "Follow-up"].includes(row.label)) || [];
     return [
-      { title: "Nutrition diagnosis", value: pesStatus },
-      { title: "Nutrition intervention", value: interventionStatus },
-      { title: "Diet plan", value: dietPlanStatus },
+      { title: "Care plan links", rows: rows.map((row) => ({ label: row.label, meta: row.status, value: row.value })) },
+      { title: "Care boundary", value: "NutriMap reads care-plan status from shared patient state. Formal edits remain in Clinical Hub and Diet Plan Builder." },
     ];
   }
 
   if (activeTab === "ai") {
+    const aiRow = organSummary?.clinicalRows?.find((row) => row.label === "AI review");
+    const reportRow = organSummary?.clinicalRows?.find((row) => row.label === "Reports");
     return [
-      { title: "Rule-based clinical considerations", items: ["Based only on available patient data", `${organSummary?.missingCount || 0} mapped item(s) missing`, "Clinician review required"] },
+      { title: "Rule-based clinical considerations", items: ["Based only on available patient data", `${organSummary?.missingCount || 0} mapped item(s) missing`, "Clinical visualization — clinician review required"] },
+      { title: "AI and report state", rows: [
+        { label: "AI review", meta: aiRow?.status || "Not recorded", value: aiRow?.value || "Not recorded" },
+        { label: "Reports", meta: reportRow?.status || "Not recorded", value: reportRow?.value || "Not recorded" },
+      ] },
       { title: "AI safety", value: "No diagnosis or prescription is generated from NutriMap." },
     ];
   }
@@ -346,10 +542,34 @@ function buildLiveTabSections(activeTab, system, organSummary, patientWorkflow) 
     ];
   }
 
+  const overviewRows = [
+    ...(organSummary?.fields || []).slice(0, 4).map((field) => ({
+      label: field.label,
+      meta: field.value === "Not recorded" ? "Missing" : "Recorded",
+      value: field.value,
+    })),
+    ...(organSummary?.labs || []).slice(0, 3).map((lab) => ({
+      label: lab.label,
+      meta: lab.status || "Not recorded",
+      value: lab.value === "Not recorded" ? "Not recorded" : `${lab.value}${lab.unit ? ` ${lab.unit}` : ""}`,
+    })),
+  ];
+  const clinicalRows = organSummary?.clinicalRows || [];
+  const pesRow = clinicalRows.find((row) => row.label === "PES diagnosis");
+  const interventionRow = clinicalRows.find((row) => row.label === "Nutrition intervention");
+  const monitoringRow = clinicalRows.find((row) => row.label === "Monitoring");
+
   return [
     { title: "Current Clinical Status", value: organSummary?.status || statusLabel(system.status) },
     { title: "Main Concern", value: organSummary?.missingCount ? `${organSummary.missingCount} mapped item(s) missing.` : "No mapped data gap detected." },
+    { title: "Organ-specific mapped data", rows: overviewRows.length ? overviewRows : [{ label: system.label, meta: "No Data", value: "No organ-specific data recorded" }] },
+    { title: "Care context", rows: [
+      { label: "Nutrition diagnosis", meta: pesRow?.status || "Not recorded", value: pesRow?.value || "Not recorded" },
+      { label: "Intervention", meta: interventionRow?.status || "Not recorded", value: interventionRow?.value || "Not recorded" },
+      { label: "Monitoring", meta: monitoringRow?.status || "Not recorded", value: monitoringRow?.value || "Not recorded" },
+    ] },
     { title: "Clinical Notes", value: system.focus },
+    { title: "Safety boundary", value: "Clinical visualization — clinician review required." },
   ];
 }
 
@@ -362,7 +582,32 @@ function OrganNotesEditor({ activePatient, organId, updatePatient }) {
     note: savedNote,
     reviewStatus: savedDetails.reviewStatus || "Needs Review",
   });
-  const [saveStatus, setSaveStatus] = useState("Saved");
+  const [saveStatus, setSaveStatus] = useState(savedDetails.savedAt ? `Saved ${formatSavedTime(savedDetails.savedAt)}` : "Saved");
+
+  const persistDraft = useCallback((nextStatus = "Saved just now") => {
+    if (!updatePatient || !activePatient) {
+      setSaveStatus("Save failed");
+      return;
+    }
+    const savedAt = new Date().toISOString();
+    updatePatient({
+      ...activePatient,
+      organClinicalDetails: {
+        ...(activePatient?.organClinicalDetails || {}),
+        [organId]: {
+          followUpReminder: draft.followUpReminder,
+          monitoringNote: draft.monitoringNote,
+          reviewStatus: draft.reviewStatus,
+          savedAt,
+        },
+      },
+      organClinicalNotes: {
+        ...(activePatient?.organClinicalNotes || {}),
+        [organId]: draft.note,
+      },
+    });
+    setSaveStatus(`${nextStatus} ${formatSavedTime(savedAt)}`);
+  }, [activePatient, draft.followUpReminder, draft.monitoringNote, draft.note, draft.reviewStatus, organId, updatePatient]);
 
   useEffect(() => {
     const hasChanged =
@@ -374,27 +619,11 @@ function OrganNotesEditor({ activePatient, organId, updatePatient }) {
     if (!hasChanged) return undefined;
     const timer = window.setTimeout(() => {
       setSaveStatus("Saving...");
-      updatePatient?.({
-        ...activePatient,
-        organClinicalDetails: {
-          ...(activePatient?.organClinicalDetails || {}),
-          [organId]: {
-            followUpReminder: draft.followUpReminder,
-            monitoringNote: draft.monitoringNote,
-            reviewStatus: draft.reviewStatus,
-            savedAt: new Date().toISOString(),
-          },
-        },
-        organClinicalNotes: {
-          ...(activePatient?.organClinicalNotes || {}),
-          [organId]: draft.note,
-        },
-      });
-      setSaveStatus("Saved just now");
+      persistDraft("Saved");
     }, 1700);
 
     return () => window.clearTimeout(timer);
-  }, [activePatient, draft, organId, savedDetails.followUpReminder, savedDetails.monitoringNote, savedDetails.reviewStatus, savedNote, updatePatient]);
+  }, [draft, persistDraft, savedDetails.followUpReminder, savedDetails.monitoringNote, savedDetails.reviewStatus, savedNote]);
 
   function updateField(field, value) {
     setDraft((current) => ({ ...current, [field]: value }));
@@ -439,10 +668,119 @@ function OrganNotesEditor({ activePatient, organId, updatePatient }) {
       </label>
       <div className="mt-3 flex justify-end gap-2">
         <button className="np-button np-button-secondary min-h-10 px-4 py-2 text-xs" onClick={cancelChanges} type="button">Cancel</button>
-        <button className="np-button np-button-primary min-h-10 px-4 py-2 text-xs" onClick={() => updatePatient?.({ ...activePatient, organClinicalNotes: { ...(activePatient?.organClinicalNotes || {}), [organId]: draft.note }, organClinicalDetails: { ...(activePatient?.organClinicalDetails || {}), [organId]: { ...draft, savedAt: new Date().toISOString() } } })} type="button">Save</button>
+        <button className="np-button np-button-primary min-h-10 px-4 py-2 text-xs" onClick={() => persistDraft("Saved")} type="button">Save</button>
       </div>
     </section>
   );
+}
+
+function formatSavedTime(value) {
+  if (!value) return "";
+  try {
+    return new Intl.DateTimeFormat(undefined, { hour: "2-digit", minute: "2-digit" }).format(new Date(value));
+  } catch {
+    return "";
+  }
+}
+
+function patientDataRow(patient, label, keys) {
+  return {
+    label,
+    meta: "Patient record",
+    value: readFirstPatientValue(patient, keys),
+  };
+}
+
+function readFirstPatientValue(patient, keys) {
+  for (const key of keys) {
+    const value = patient?.[key];
+    if (hasClinicalValue(value)) return value;
+  }
+  return "Not recorded";
+}
+
+function muscleLabRow(patient, labName) {
+  const lab = readLabRecord(patient, labName);
+  return {
+    label: labName,
+    meta: lab.status || "Not recorded",
+    value: hasClinicalValue(lab.value) ? `${lab.value}${lab.unit ? ` ${lab.unit}` : ""}` : "Not recorded",
+  };
+}
+
+function readLabRecord(patient, labName) {
+  const normalizedName = normalizeLookup(labName);
+  const labRows = [
+    ...(Array.isArray(patient?.labValues) ? patient.labValues : []),
+    ...(Array.isArray(patient?.labs) ? patient.labs : []),
+    ...(Array.isArray(patient?.laboratoryResults) ? patient.laboratoryResults : []),
+  ];
+  const match = labRows.find((lab) => normalizeLookup(lab.label || lab.name || lab.test) === normalizedName);
+  const directValue = patient?.[camelizeLookup(labName)] || patient?.[normalizedName];
+  return {
+    status: match?.status || (hasClinicalValue(match?.value || directValue) ? "Recorded" : "Not recorded"),
+    unit: match?.unit || "",
+    value: match?.value ?? directValue ?? "Not recorded",
+  };
+}
+
+function muscleRegionClinicalContext(region, patient) {
+  if (region.clinicalGroup === "upper") {
+    return [
+      "Upper-body strength context",
+      `Protein adequacy: ${readFirstPatientValue(patient, ["proteinAdequacy", "proteinIntake", "proteinTarget", "proteinRequirement"])}`,
+      `Functional assessment: ${readFirstPatientValue(patient, ["functionalAssessment", "handgripStrength"])}`,
+    ].join(" · ");
+  }
+  if (region.clinicalGroup === "core") {
+    return [
+      "Core strength and body composition context",
+      `Body composition: ${readFirstPatientValue(patient, ["bodyComposition", "estimatedMuscleMass", "muscleMass"])}`,
+      `Mobility notes: ${readFirstPatientValue(patient, ["mobilityNotes", "postureNotes", "physicalActivity"])}`,
+    ].join(" · ");
+  }
+  if (region.clinicalGroup === "lower") {
+    return [
+      "Lower-body strength and mobility context",
+      `Calf circumference: ${readFirstPatientValue(patient, ["calfCircumference"])}`,
+      `Functional status: ${readFirstPatientValue(patient, ["functionalStatus", "mobilityNotes", "physicalActivity"])}`,
+    ].join(" · ");
+  }
+  return "Global muscle-related assessment context. Clinician review required.";
+}
+
+function muscleImpactContext(activeImpactId, patient) {
+  if (activeImpactId === "protein") {
+    return [
+      `Protein intake: ${readFirstPatientValue(patient, ["proteinIntake", "proteinTarget", "proteinRequirement"])}`,
+      `Energy intake: ${readFirstPatientValue(patient, ["energyIntake", "energyTarget", "caloriesTarget"])}`,
+      `Weight trend: ${readFirstPatientValue(patient, ["weightTrend", "recentWeightChange", "weightChange"])}`,
+      "Clinical consideration only; no prescription generated.",
+    ].join(" · ");
+  }
+  if (activeImpactId === "vitamin-d") {
+    const vitaminD = readLabRecord(patient, "Vitamin D");
+    return `Vitamin D: ${hasClinicalValue(vitaminD.value) ? `${vitaminD.value}${vitaminD.unit ? ` ${vitaminD.unit}` : ""}` : "Not recorded"} · Muscles and Bones shown as related context.`;
+  }
+  if (activeImpactId === "omega-3") {
+    const crp = readLabRecord(patient, "CRP");
+    return `Inflammation marker context: CRP ${hasClinicalValue(crp.value) ? `${crp.value}${crp.unit ? ` ${crp.unit}` : ""}` : "Not recorded"} · No causation implied.`;
+  }
+  return "Select Protein, Vitamin D, or Omega-3 to view muscle-related nutrition impact context.";
+}
+
+function hasClinicalValue(value) {
+  if (Array.isArray(value)) return value.length > 0;
+  if (value === 0) return true;
+  return Boolean(value && String(value).trim() && String(value).trim() !== "Not recorded");
+}
+
+function normalizeLookup(value) {
+  return String(value || "").toLowerCase().replace(/[^a-z0-9]/g, "");
+}
+
+function camelizeLookup(value) {
+  return String(value || "").toLowerCase().replace(/[^a-z0-9]+(.)/g, (_, char) => char.toUpperCase());
 }
 
 function cleanClinicalText(value) {
@@ -511,6 +849,8 @@ function nutriMapStatusDot(status) {
   if (status === "Yellow") return "bg-[var(--np-color-accent)]";
   return "bg-[var(--np-color-success)]";
 }
+
+
 
 
 

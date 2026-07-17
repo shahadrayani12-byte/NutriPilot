@@ -354,11 +354,15 @@ function AppShell() {
         {page === "nutrimap" && (
           <NutriMapWorkspace
             activePatient={activePatient}
+            aiSummary={aiSummary}
             initialSystemId={nutriMapInitialSystem}
-            key={`${activePatient?.id || "patient"}-${nutriMapInitialSystem || "brain"}`}
+            key={`${activePatient?.id || "patient"}-${nutriMapInitialSystem || "body-navigator"}`}
             onNavigate={setPage}
             onOpenClinicalHub={openPatientWorkspace}
             intelligence={intelligence}
+            reports={reports}
+            schedule={schedule}
+            tasks={tasks}
             updatePatient={updatePatient}
             workflow={workflow}
           />

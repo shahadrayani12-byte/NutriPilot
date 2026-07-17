@@ -1,7 +1,7 @@
 export const NUTRIMAP_ORGAN_CONFIG = {
   brain: {
-    fields: ["appetite", "cognitionNotes", "neurologicalHistory"],
-    labs: ["Vitamin B12", "Folate", "Vitamin D"],
+    fields: ["appetite", "cognitionNotes", "neurologicalHistory", "omega3Context"],
+    labs: ["Vitamin B12", "Folate", "Vitamin D", "Glucose"],
     assessments: ["dietaryAssessment", "medicalHistory"],
     clinicalHubTab: "ai",
   },
@@ -12,32 +12,32 @@ export const NUTRIMAP_ORGAN_CONFIG = {
     clinicalHubTab: "dietary",
   },
   heart: {
-    fields: ["bmi", "weightStatus", "bloodPressure"],
-    labs: ["Total Cholesterol", "LDL", "HDL", "Triglycerides", "Sodium"],
+    fields: ["lipidProfile", "sodiumContext", "bmi", "weightStatus", "bloodPressure"],
+    labs: ["Total Cholesterol", "LDL", "HDL", "Triglycerides", "Sodium", "BMI", "Blood Pressure"],
     assessments: ["anthropometricAssessment", "medicalHistory"],
     clinicalHubTab: "assessment",
   },
   "blood-iron": {
     fields: ["diagnosis", "dietaryRecall"],
-    labs: ["Ferritin", "Hemoglobin", "Serum Iron", "TIBC", "Transferrin Saturation", "RBC", "Hematocrit", "MCV", "MCH", "MCHC", "RDW", "Vitamin B12", "Folate", "CRP"],
+    labs: ["Ferritin", "Hemoglobin", "Serum Iron", "TIBC", "Transferrin Saturation", "RBC", "Hematocrit", "MCV", "MCH", "MCHC", "RDW", "Vitamin B12", "Folate"],
     assessments: ["laboratoryResults", "dietaryAssessment"],
     clinicalHubTab: "laboratory",
   },
   liver: {
     fields: ["lipidProfile", "diagnosis"],
-    labs: ["ALT", "AST", "Albumin", "Bilirubin", "Total Cholesterol", "Triglycerides"],
+    labs: ["ALT", "AST", "Albumin", "Bilirubin", "Lipid Profile"],
     assessments: ["laboratoryResults", "medicalHistory"],
     clinicalHubTab: "laboratory",
   },
   gastrointestinal: {
     fields: ["giSymptoms", "ibsStatus", "appetite", "dietaryRecall", "fiber", "hydration"],
-    labs: ["Albumin", "Ferritin"],
+    labs: [],
     assessments: ["dietaryAssessment", "medicalHistory"],
     clinicalHubTab: "dietary",
   },
   pancreas: {
     fields: ["carbohydrateDistribution", "diabetesStatus"],
-    labs: ["Fasting Glucose", "HbA1c", "Triglycerides"],
+    labs: ["Fasting Glucose", "HbA1c"],
     assessments: ["laboratoryResults", "dietaryAssessment"],
     clinicalHubTab: "laboratory",
   },
@@ -48,8 +48,8 @@ export const NUTRIMAP_ORGAN_CONFIG = {
     clinicalHubTab: "laboratory",
   },
   muscles: {
-    fields: ["weightTrend", "proteinTarget", "physicalActivity", "muscleAssessment"],
-    labs: ["Vitamin D", "Albumin"],
+    fields: ["weightTrend", "proteinIntake", "proteinTarget", "physicalActivity", "calfCircumference", "muac", "handgripStrength"],
+    labs: ["Vitamin D", "CRP"],
     assessments: ["anthropometricAssessment", "dietPlan"],
     clinicalHubTab: "assessment",
   },
@@ -79,10 +79,12 @@ export function buildOrganDataSummary(patient, organId, workflow) {
   const recordedItems = recordedFields + recordedLabs;
   const completeness = totalItems ? Math.round((recordedItems / totalItems) * 100) : 0;
   const status = calculateOrganStatus({ completeness, fields, labs, totalItems });
+  const clinicalRows = buildOrganClinicalRows(patient, workflow);
 
   return {
     assessments: config.assessments,
     clinicalHubTab: config.clinicalHubTab,
+    clinicalRows,
     completeness,
     completedCount: recordedItems,
     fields,
@@ -128,14 +130,30 @@ function readPatientValue(patient, field) {
   const aliases = {
     appetite: ["appetiteLevel", "appetiteStatus"],
     bmi: ["BMI", "bodyMassIndex"],
+    boneHistory: ["boneRelatedHistory", "boneHealthHistory"],
+    carbohydrateDistribution: ["carbDistribution", "carbohydratePattern"],
+    cognitionNotes: ["cognitiveNotes", "cognition"],
+    diabetesStatus: ["diabetes", "glucoseStatus"],
     dietaryRecall: ["recall24h", "dietaryNotes", "dietaryRecall"],
     fiber: ["fiberIntake", "fiberTarget"],
     fluidTarget: ["fluidTarget", "waterGoal"],
     giSymptoms: ["giComplaints", "nutritionSymptoms"],
+    handgripStrength: ["handGripStrength", "gripStrength"],
     hydration: ["waterIntake", "fluidIntake"],
+    ibsStatus: ["ibsDiagnosis", "IBS", "diagnosis"],
+    lipidProfile: ["lipids", "cholesterolProfile", "lipidStatus"],
+    muac: ["MUAC", "midUpperArmCircumference"],
+    omega3Context: ["omega3Intake", "omega3Context", "fishIntake"],
+    oralHealthNotes: ["oralHealth", "mouthNotes", "dentalNotes"],
+    oralIntakeBarriers: ["oralBarriers", "intakeBarriers"],
+    oralSymptoms: ["mouthSymptoms", "oralSymptoms"],
     physicalActivity: ["activityLevel", "physicalActivityLevel"],
+    proteinIntake: ["proteinIntake", "proteinAdequacy"],
     proteinTarget: ["proteinRequirement", "proteinTarget"],
+    sodiumContext: ["sodium", "sodiumIntake", "sodiumTarget"],
+    swallowingDifficulty: ["dysphagia", "swallowingProblems"],
     weightStatus: ["weight", "weightTrend"],
+    weightBearingActivity: ["weightBearingExercise", "resistanceActivity"],
   }[field] || [];
 
   for (const alias of aliases) {
@@ -152,8 +170,13 @@ function readLabValue(patient, labName) {
     ...(Array.isArray(patient?.labs) ? patient.labs : []),
     ...(Array.isArray(patient?.laboratoryResults) ? patient.laboratoryResults : []),
   ];
-  const match = labRows.find((lab) => normalize(lab.label || lab.name || lab.test) === normalizedName);
-  const directValue = patient?.[camelize(labName)] || patient?.[normalizedName];
+  const aliases = labAliases(labName).map(normalize);
+  const match = labRows.find((lab) => {
+    const key = normalize(lab.label || lab.name || lab.test);
+    return key === normalizedName || aliases.includes(key);
+  });
+  const directKeys = [camelize(labName), normalizedName, ...labAliases(labName).map(camelize)];
+  const directValue = directKeys.map((key) => patient?.[key]).find(hasValue);
 
   return {
     date: match?.date || patient?.labDate || "",
@@ -165,32 +188,81 @@ function readLabValue(patient, labName) {
   };
 }
 
+function labAliases(labName) {
+  return {
+    "Blood Pressure": ["bloodPressure", "BP"],
+    "Fasting Glucose": ["Glucose", "Fasting Blood Glucose", "FBG"],
+    Glucose: ["Fasting Glucose", "Fasting Blood Glucose", "FBG"],
+    "Lipid Profile": ["Lipids", "Cholesterol Profile", "Total Cholesterol", "LDL", "HDL", "Triglycerides"],
+    MCHC: ["Mean Corpuscular Hemoglobin Concentration"],
+    "Total Cholesterol": ["Cholesterol", "TC"],
+    "Transferrin Saturation": ["TSAT", "Transferrin Sat"],
+    "Vitamin B12": ["B12"],
+    "Vitamin D": ["25-OH Vitamin D", "25 Hydroxy Vitamin D", "Vit D"],
+  }[labName] || [];
+}
+
 function buildOrganTimeline(patient, workflow) {
-  const steps = [
-    ["assessment", "Assessment completed", "Clinical Hub"],
-    ["labs", "Laboratory review", "Laboratory Results"],
-    ["pes", "PES diagnosis added", "Clinical Hub"],
-    ["intervention", "Intervention added", "Clinical Hub"],
-    ["dietPlan", "Diet plan activated", "Diet Plan"],
-    ["monitoring", "Monitoring entry added", "Monitoring"],
-    ["ai", "AI review completed", "AI Center"],
-    ["reports", "Report generated", "Reports"],
+  const entries = [
+    ...timelineFromCollection(patient?.labValues || patient?.labs || patient?.laboratoryResults, "Lab added", "Laboratory Results", "date"),
+    ...timelineFromCollection(patient?.diagnoses, "PES added", "Clinical Hub", "reviewDate"),
+    ...timelineFromCollection(patient?.interventions, "Intervention added", "Clinical Hub", "date"),
+    ...timelineFromCollection(patient?.dietPlans, "Diet plan activated", "Diet Plan", "activatedAt"),
+    ...timelineFromCollection(patient?.followUps, "Follow-up scheduled", "Monitoring", "date"),
+    ...timelineFromCollection(patient?.monitoringEntries, "Monitoring added", "Monitoring", "date"),
+    ...timelineFromCollection(patient?.aiAssessments, "AI review completed", "AI Center", "generatedAt"),
+    ...timelineFromCollection(patient?.reportHistory || patient?.reports, "Report generated", "Reports", "date"),
   ];
 
-  return steps
-    .map(([id, title, source]) => {
-      const step = workflow?.steps?.find((item) => item.id === id);
-      if (!step || !["Completed", "Needs Review"].includes(step.status)) return null;
-      return {
-        date: patient?.lastUpdated || patient?.lastVisit || "",
-        description: step.status === "Completed" ? "Recorded in shared workflow." : "Needs clinician review.",
-        source,
-        status: step.status,
-        title,
-      };
-    })
-    .filter(Boolean)
-    .reverse();
+  if (hasValue(patient?.lastAssessmentDate)) {
+    entries.push({ date: patient.lastAssessmentDate, description: "Assessment date recorded in patient record.", source: "Clinical Hub", status: workflow?.steps?.find((step) => step.id === "assessment")?.status || "Recorded", title: "Assessment completed" });
+  }
+  if (hasValue(patient?.labReviewedAt)) {
+    entries.push({ date: patient.labReviewedAt, description: "Laboratory review date recorded in patient record.", source: "Laboratory Results", status: workflow?.steps?.find((step) => step.id === "labs")?.status || "Recorded", title: "Lab reviewed" });
+  }
+
+  return entries
+    .filter((entry) => hasValue(entry.date))
+    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+}
+
+function buildOrganClinicalRows(patient, workflow) {
+  const stepStatus = (stepId, fallback = "Not recorded") => workflow?.steps?.find((step) => step.id === stepId)?.status || fallback;
+  const latestDiagnosis = latestCollectionValue(patient?.diagnoses, ["statement", "problem", "diagnosis"]) || patient?.nutritionDiagnosis || "Not recorded";
+  const latestIntervention = latestCollectionValue(patient?.interventions, ["goal", "dietPrescription", "summary"]) || "Not recorded";
+  const activeDietPlan = (patient?.dietPlans || []).find((plan) => ["Active", "Draft"].includes(plan.status)) || {};
+  const latestFollowUp = latestCollectionValue(patient?.followUps, ["summary", "type", "nextAction"]) || patient?.nextFollowUpDate || "Not recorded";
+  const aiReview = latestCollectionValue(patient?.aiAssessments, ["summary", "riskLevel", "status"]) || stepStatus("ai");
+  const reportStatus = latestCollectionValue(patient?.reportHistory || patient?.reports, ["status", "title", "name"]) || stepStatus("reports");
+
+  return [
+    { label: "PES diagnosis", status: stepStatus("pes"), value: latestDiagnosis },
+    { label: "Nutrition intervention", status: stepStatus("intervention"), value: latestIntervention },
+    { label: "Diet plan", status: stepStatus("dietPlan"), value: activeDietPlan.title || activeDietPlan.status || "Not recorded" },
+    { label: "Monitoring", status: stepStatus("monitoring"), value: latestFollowUp },
+    { label: "Follow-up", status: hasValue(patient?.nextFollowUpDate) ? "Recorded" : "Not recorded", value: patient?.nextFollowUpDate || latestFollowUp },
+    { label: "AI review", status: stepStatus("ai"), value: aiReview },
+    { label: "Reports", status: stepStatus("reports"), value: reportStatus },
+  ];
+}
+
+function timelineFromCollection(collection, title, source, preferredDateKey) {
+  if (!Array.isArray(collection)) return [];
+  return collection.map((item) => {
+    const date = item?.[preferredDateKey] || item?.date || item?.createdAt || item?.updatedAt || item?.generatedAt || item?.reviewDate || "";
+    const status = item?.status || "Recorded";
+    const description = item?.summary || item?.label || item?.name || item?.title || item?.problem || "Recorded in shared patient state.";
+    return { date, description, source, status, title };
+  });
+}
+
+function latestCollectionValue(collection, keys) {
+  if (!Array.isArray(collection) || !collection.length) return "";
+  const [latest] = [...collection].reverse();
+  for (const key of keys) {
+    if (hasValue(latest?.[key])) return latest[key];
+  }
+  return "";
 }
 
 function humanizeField(field) {
@@ -208,5 +280,9 @@ function normalize(value) {
 function hasValue(value) {
   if (Array.isArray(value)) return value.length > 0;
   if (value === 0) return true;
-  return Boolean(value && String(value).trim() && String(value).trim() !== "Not recorded");
+  const normalized = String(value || "").trim().toLowerCase();
+  if (!normalized) return false;
+  return !["not recorded", "n/a", "na", "none", "unavailable"].includes(normalized)
+    && !normalized.includes("placeholder")
+    && !normalized.includes("pending");
 }

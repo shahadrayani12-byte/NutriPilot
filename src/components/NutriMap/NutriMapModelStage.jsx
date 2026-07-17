@@ -1,10 +1,11 @@
 import { Component, Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Bounds, Environment, Html, OrbitControls, useGLTF } from "@react-three/drei";
+import { ContactShadows, Environment, Html, OrbitControls, useGLTF, useProgress } from "@react-three/drei";
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import { ArrowLeft, ArrowRight, LocateFixed, Maximize2, Minus, Rotate3D, RotateCcw, ZoomIn } from "lucide-react";
 import * as THREE from "three";
 import * as SkeletonUtils from "three/examples/jsm/utils/SkeletonUtils.js";
 import { ANATOMY_LAYERS } from "../../data/anatomyLayers";
+import { MUSCLE_REGION_DEFAULT_ID, MUSCLE_REGION_HOTSPOTS, getMuscleRegion } from "../../data/nutrimapMuscleRegions";
 import { NUTRIMAP_HOTSPOTS, VALID_HOTSPOT_ORGAN_IDS, getCalibratedHotspot, getNutriMapHotspot, resetCalibratedHotspot, saveCalibratedHotspot } from "./nutrimapHotspots";
 
 const TARGET_MODEL_HEIGHT = 2.95;
@@ -23,8 +24,60 @@ const DEFAULT_MODEL_METRICS = {
   width: 0.9474500119686127,
 };
 const PUBLIC_BASE_URL = import.meta.env.BASE_URL || "/";
+const LAYER_CAMERA_PRESETS = {
+  "body-navigator": { distance: 1.26, far: 100, fov: 36, near: 0.04, offsetX: 0, offsetY: 0.01, targetY: 0, yaw: 0 },
+  brain: { distance: 1.72, far: 80, fov: 36, near: 0.03, offsetX: 0.02, offsetY: 0.02, targetY: 0.02, yaw: -0.08 },
+  circulatory: { distance: 1.18, far: 100, fov: 35, near: 0.04, offsetX: 0.03, offsetY: 0.01, targetY: 0.01, yaw: 0.08 },
+  digestive: { distance: 1.2, far: 90, fov: 36, near: 0.04, offsetX: 0.02, offsetY: 0.03, targetY: 0.02, yaw: 0.08 },
+  heart: { distance: 1.16, far: 70, fov: 36, near: 0.03, offsetX: 0.14, offsetY: 0.05, targetY: 0.03, yaw: 0.16 },
+  kidneys: { distance: 1.2, far: 80, fov: 36, near: 0.03, offsetX: 0.08, offsetY: 0.04, targetY: 0.03, yaw: 0.17 },
+  liver: { distance: 1.2, far: 80, fov: 36, near: 0.03, offsetX: 0.09, offsetY: 0.03, targetY: 0.03, yaw: 0.18 },
+  oral: { distance: 1.08, far: 60, fixedPosition: [0, 0.45, 2.1], fixedTarget: [0, 0, 0], fov: 45, near: 0.02, offsetX: 0, offsetY: 0.02, targetY: 0, yaw: 0 },
+  pancreas: { distance: 1.22, far: 70, fov: 37, near: 0.03, offsetX: 0.08, offsetY: 0.02, targetY: 0.02, yaw: 0.16 },
+  skeleton: { distance: 1.2, far: 100, fov: 36, near: 0.04, offsetX: 0.02, offsetY: 0.02, targetY: 0.02, yaw: 0.04 },
+};
+const DEFAULT_LAYER_CAMERA_PRESET = { distance: 1.18, far: 100, fov: 36, near: 0.04, offsetX: 0, offsetY: 0, targetY: 0, yaw: 0 };
+const LAYER_LIGHTING_PRESETS = {
+  "body-navigator": { ambient: 0.82, exposure: 1.06, fill: 0.78, ground: "#d8d1c7", hemisphere: 0.82, key: 2.0, rim: 0.64, sky: "#ffffff" },
+  brain: { ambient: 0.8, exposure: 1.06, fill: 0.78, ground: "#d8d1c7", hemisphere: 0.82, key: 1.95, rim: 0.64, sky: "#ffffff" },
+  circulatory: { ambient: 0.82, exposure: 1.06, fill: 0.82, ground: "#d8d1c7", hemisphere: 0.82, key: 2.05, rim: 0.66, sky: "#ffffff" },
+  digestive: { ambient: 0.78, exposure: 1.04, fill: 0.76, ground: "#d8d1c7", hemisphere: 0.82, key: 1.95, rim: 0.64, sky: "#ffffff" },
+  heart: { ambient: 0.78, exposure: 1.06, fill: 0.78, ground: "#d8d1c7", hemisphere: 0.82, key: 2.02, rim: 0.68, sky: "#ffffff" },
+  kidneys: { ambient: 0.78, exposure: 1.04, fill: 0.76, ground: "#d8d1c7", hemisphere: 0.82, key: 1.95, rim: 0.64, sky: "#ffffff" },
+  liver: { ambient: 0.8, exposure: 1.06, fill: 0.8, ground: "#d8d1c7", hemisphere: 0.82, key: 2.0, rim: 0.66, sky: "#ffffff" },
+  pancreas: { ambient: 0.8, exposure: 1.06, fill: 0.8, ground: "#d8d1c7", hemisphere: 0.82, key: 2.0, rim: 0.64, sky: "#ffffff" },
+  skeleton: { ambient: 0.84, exposure: 1.08, fill: 0.82, ground: "#d8d1c7", hemisphere: 0.82, key: 2.08, rim: 0.68, sky: "#ffffff" },
+};
+const DEFAULT_LAYER_LIGHTING = {
+  ambient: 0.76,
+  exposure: 1.12,
+  fill: 0.72,
+  fillPosition: [-3.2, 2.6, 2.8],
+  ground: "#d8cfc4",
+  hemisphere: 1.08,
+  key: 1.95,
+  keyPosition: [3.4, 5.3, 4.2],
+  rim: 0.82,
+  rimPosition: [0, 2.5, -4.2],
+  sky: "#ffffff",
+};
+const BODY_NAVIGATOR_HOTSPOTS = [
+  { id: "brain", label: "Brain", organId: "brain", position: [0, 1.03, 0.48] },
+  { id: "oral-cavity", label: "Oral Cavity", organId: "oral-cavity", position: [0, 0.82, 0.5] },
+  { id: "heart", label: "Heart", organId: "heart", position: [0.08, 0.46, 0.5] },
+  { id: "blood-iron", label: "Hematology & Iron", organId: "blood-iron", position: [-0.1, 0.52, 0.5] },
+  { id: "liver", label: "Liver", organId: "liver", position: [-0.2, 0.16, 0.5] },
+  { id: "gastrointestinal", label: "Gastrointestinal System", organId: "gastrointestinal", position: [0.01, -0.08, 0.5] },
+  { id: "pancreas", label: "Pancreas", organId: "pancreas", position: [0.13, 0.1, 0.5] },
+  { id: "kidneys", label: "Kidneys", organId: "kidneys", position: [0.26, -0.18, 0.46] },
+  { id: "muscles", label: "Muscles", organId: "muscles", position: [0.2, 0.34, 0.5] },
+  { id: "bones", label: "Bones", organId: "bones", position: [-0.08, -0.58, 0.47] },
+];
+const LAYER_MODEL_ROTATIONS = {
+  oral: [0, Math.PI, 0],
+};
 
-export function NutriMapModelStage({ activeLayer = ANATOMY_LAYERS["full-body"], activeLayerId = activeLayer.id, drawerOpen = false, impactEmphasis = {}, selectOrgan, selectedOrganId, size = "large", systems }) {
+export function NutriMapModelStage({ activeLayer = ANATOMY_LAYERS["full-body"], activeLayerId = activeLayer.id, drawerOpen = false, impactEmphasis = {}, selectOrgan, selectMuscleRegion, selectedOrganId, selectedMuscleRegionId = MUSCLE_REGION_DEFAULT_ID, size = "large", systems }) {
   const selectedOrgan = systems.find((system) => system.id === selectedOrganId);
   const relationshipIds = selectedOrgan?.connections || [];
   const isPreview = size === "preview";
@@ -52,31 +105,21 @@ export function NutriMapModelStage({ activeLayer = ANATOMY_LAYERS["full-body"], 
       <StageGuides />
       <NutriMapModelErrorBoundary fallback={<FallbackBodyMap selectedOrganId={selectedOrganId} selectOrgan={handleOrganSelection} systems={systems} />}>
         <Canvas
+          dpr={[1, 1.5]}
           camera={{ fov: 36, near: 0.05, far: 100, position: [0, 0, 6.4] }}
           shadows
-          gl={{ antialias: true, alpha: true }}
+          gl={{ antialias: true, alpha: true, powerPreference: "high-performance" }}
           onCreated={({ gl }) => {
             gl.outputColorSpace = THREE.SRGBColorSpace;
             gl.shadowMap.enabled = true;
-            gl.shadowMap.type = THREE.PCFSoftShadowMap;
+            gl.shadowMap.type = THREE.PCFShadowMap;
             gl.toneMapping = THREE.ACESFilmicToneMapping;
             gl.toneMappingExposure = 1.22;
           }}
           style={{ height: "100%", width: "100%" }}
         >
-          <ambientLight intensity={0.88} />
-          <hemisphereLight args={["#ffffff", "#d8cfc4", 1.28]} />
-          <directionalLight castShadow intensity={2.35} position={[3.5, 5.5, 4.2]} shadow-mapSize={[2048, 2048]} />
-          <directionalLight intensity={0.95} position={[-3.5, 2.8, 2.6]} />
-          <directionalLight intensity={1.1} position={[0, 2.4, -4.2]} />
-          <Environment preset="studio" />
-          {activeLayerId === "skeleton" ? <SkeletonLayerLighting /> : null}
-          {activeLayerId === "oral" ? <OralLayerLighting /> : null}
-          {activeLayerId === "digestive" ? <DigestiveLayerLighting /> : null}
-          {activeLayerId === "liver" ? <LiverLayerLighting /> : null}
-          {activeLayerId === "kidneys" ? <KidneysLayerLighting /> : null}
-          {activeLayerId === "pancreas" ? <PancreasLayerLighting /> : null}
-          {activeLayerId === "circulatory" ? <CirculatoryLayerLighting /> : null}
+          <ClinicalLayerLighting activeLayerId={activeLayerId} />
+          {activeLayerId === "oral" ? null : <Environment preset="studio" />}
           <LayerRenderTuning activeLayerId={activeLayerId} />
           <OrbitControls
             enableDamping
@@ -91,7 +134,7 @@ export function NutriMapModelStage({ activeLayer = ANATOMY_LAYERS["full-body"], 
             onStart={pauseAutoRotate}
             target={[0, 0, 0]}
           />
-          <Suspense fallback={<ModelLoadingFallback />}>
+          <Suspense fallback={<ModelLoadingFallback activeLayer={activeLayer} />}>
             <ModelLayerContent
               key={activeLayerId}
               activeLayer={activeLayer}
@@ -104,14 +147,17 @@ export function NutriMapModelStage({ activeLayer = ANATOMY_LAYERS["full-body"], 
               onMetrics={setModelMetrics}
               relationshipIds={relationshipIds}
               selectOrgan={handleOrganSelection}
+              selectMuscleRegion={selectMuscleRegion}
               selectedOrgan={selectedOrgan}
               selectedOrganId={selectedOrganId}
+              selectedMuscleRegionId={selectedMuscleRegionId}
               systems={systems}
             />
           </Suspense>
         </Canvas>
       </NutriMapModelErrorBoundary>
       <ViewerControls
+        activeLayerId={activeLayerId}
         autoRotateEnabled={autoRotateEnabled}
         modelMetrics={modelMetrics}
         setAutoRotateEnabled={(enabled) => {
@@ -145,13 +191,23 @@ function StageGuides() {
   );
 }
 
-function SkeletonLayerLighting() {
+function ClinicalLayerLighting({ activeLayerId }) {
+  if (activeLayerId === "oral") return <OralLayerLighting />;
+
+  const lighting = getLayerLighting(activeLayerId);
   return (
     <>
-      <ambientLight intensity={0.28} />
-      <hemisphereLight args={["#fff8ef", "#c7b8a6", 0.42]} />
-      <directionalLight castShadow intensity={0.72} position={[2.4, 4.2, 3.2]} shadow-mapSize={[2048, 2048]} />
-      <directionalLight intensity={0.38} position={[-2.2, 1.6, 2.4]} />
+      <ambientLight intensity={lighting.ambient} />
+      <hemisphereLight args={[lighting.sky, lighting.ground, lighting.hemisphere]} />
+      <directionalLight
+        castShadow
+        intensity={lighting.key}
+        position={lighting.keyPosition}
+        shadow-bias={-0.0002}
+        shadow-mapSize={[4096, 4096]}
+      />
+      <directionalLight intensity={lighting.fill} position={lighting.fillPosition} />
+      <directionalLight intensity={lighting.rim} position={lighting.rimPosition} />
     </>
   );
 }
@@ -159,67 +215,20 @@ function SkeletonLayerLighting() {
 function OralLayerLighting() {
   return (
     <>
-      <ambientLight intensity={0.18} />
-      <hemisphereLight args={["#fff4ee", "#b87979", 0.26]} />
-      <directionalLight castShadow intensity={1.12} position={[1.8, 3.4, 3.1]} shadow-mapSize={[4096, 4096]} />
-      <directionalLight intensity={0.46} position={[-1.8, 1.6, -2.8]} />
+      <ambientLight intensity={0.5} />
+      <hemisphereLight args={["#fff4ee", "#b87979", 0.42]} />
+      <directionalLight castShadow intensity={1.38} position={[1.4, 2.6, 3.8]} shadow-mapSize={[4096, 4096]} />
+      <directionalLight intensity={0.58} position={[-2.2, 1.5, 2.4]} />
+      <directionalLight intensity={0.24} position={[0, 1.8, -2.6]} />
     </>
   );
 }
 
-function DigestiveLayerLighting() {
-  return (
-    <>
-      <ambientLight intensity={0.24} />
-      <hemisphereLight args={["#fff5ef", "#d6b3a0", 0.34]} />
-      <directionalLight castShadow intensity={0.96} position={[2.2, 3.8, 3.4]} shadow-mapSize={[4096, 4096]} />
-      <directionalLight intensity={0.34} position={[-2.4, 1.8, 2.6]} />
-    </>
-  );
-}
-
-function LiverLayerLighting() {
-  return (
-    <>
-      <ambientLight intensity={0.2} />
-      <hemisphereLight args={["#fff2e8", "#5f2f2b", 0.3]} />
-      <directionalLight castShadow intensity={1.08} position={[2.4, 3.2, 3.0]} shadow-mapSize={[4096, 4096]} />
-      <directionalLight intensity={0.42} position={[-2.6, 1.7, -2.3]} />
-    </>
-  );
-}
-
-function KidneysLayerLighting() {
-  return (
-    <>
-      <ambientLight intensity={0.22} />
-      <hemisphereLight args={["#fff3ec", "#7a4a45", 0.32]} />
-      <directionalLight castShadow intensity={1.04} position={[2.1, 3.4, 3.2]} shadow-mapSize={[4096, 4096]} />
-      <directionalLight intensity={0.38} position={[-2.3, 1.8, -2.7]} />
-    </>
-  );
-}
-
-function PancreasLayerLighting() {
-  return (
-    <>
-      <ambientLight intensity={0.23} />
-      <hemisphereLight args={["#fff2ea", "#8f5b55", 0.3]} />
-      <directionalLight castShadow intensity={1.02} position={[2.2, 3.2, 3.4]} shadow-mapSize={[4096, 4096]} />
-      <directionalLight intensity={0.36} position={[-2.5, 1.7, -2.4]} />
-    </>
-  );
-}
-
-function CirculatoryLayerLighting() {
-  return (
-    <>
-      <ambientLight intensity={0.24} />
-      <hemisphereLight args={["#fff5f2", "#223858", 0.3]} />
-      <directionalLight castShadow intensity={1.0} position={[2.4, 4.2, 3.5]} shadow-mapSize={[4096, 4096]} />
-      <directionalLight intensity={0.35} position={[-2.8, 2.0, -3.0]} />
-    </>
-  );
+function getLayerLighting(activeLayerId) {
+  return {
+    ...DEFAULT_LAYER_LIGHTING,
+    ...(LAYER_LIGHTING_PRESETS[activeLayerId] || {}),
+  };
 }
 
 function LayerRenderTuning({ activeLayerId }) {
@@ -228,19 +237,9 @@ function LayerRenderTuning({ activeLayerId }) {
   useEffect(() => {
     const previousExposure = gl.toneMappingExposure;
     const previousShadowType = gl.shadowMap.type;
-    if (activeLayerId === "oral") {
-      tuneRendererForLayer(gl, 0.92, THREE.PCFSoftShadowMap);
-    } else if (activeLayerId === "digestive") {
-      tuneRendererForLayer(gl, 1.02, THREE.PCFSoftShadowMap);
-    } else if (activeLayerId === "liver") {
-      tuneRendererForLayer(gl, 0.98, THREE.PCFSoftShadowMap);
-    } else if (activeLayerId === "kidneys") {
-      tuneRendererForLayer(gl, 1.0, THREE.PCFSoftShadowMap);
-    } else if (activeLayerId === "pancreas") {
-      tuneRendererForLayer(gl, 1.0, THREE.PCFSoftShadowMap);
-    } else if (activeLayerId === "circulatory") {
-      tuneRendererForLayer(gl, 0.96, THREE.PCFSoftShadowMap);
-    }
+    const exposure = activeLayerId === "oral" ? 1.04 : getLayerLighting(activeLayerId).exposure;
+    const shadowType = THREE.PCFShadowMap;
+    tuneRendererForLayer(gl, exposure, shadowType);
     return () => {
       tuneRendererForLayer(gl, previousExposure, previousShadowType);
     };
@@ -376,11 +375,14 @@ function ModelLayerContent({
   onMetrics,
   relationshipIds,
   selectOrgan,
+  selectMuscleRegion,
   selectedOrgan,
   selectedOrganId,
+  selectedMuscleRegionId,
   systems,
 }) {
-  const isSpecialLayer = activeLayerId !== "full-body" && activeLayerId !== "muscles";
+  const isBodyNavigatorLayer = activeLayerId === "body-navigator";
+  const isSpecialLayer = activeLayerId !== "full-body" && activeLayerId !== "muscles" && !isBodyNavigatorLayer;
   const fallbackMessage = {
     brain: "Brain layer unavailable",
     circulatory: "Cardiovascular layer unavailable",
@@ -434,14 +436,19 @@ function ModelLayerContent({
         modelPath={modelUrl}
         resetKey={activeLayerId}
       >
-        {activeLayerId === "oral" || activeLayerId === "digestive" || activeLayerId === "liver" || activeLayerId === "kidneys" || activeLayerId === "pancreas" || activeLayerId === "circulatory" ? (
-          <Bounds fit clip observe margin={1.22}>
-            {anatomyModel}
-          </Bounds>
-        ) : anatomyModel}
+        {anatomyModel}
       </LayerModelErrorBoundary>
-      {isSpecialLayer ? (
-        <LayerFocusMarker selectedOrganId={selectedOrganId} selectOrgan={selectOrgan} />
+      {isBodyNavigatorLayer ? (
+        <BodyNavigatorHotspots
+          selectOrgan={selectOrgan}
+          selectedOrganId={selectedOrganId}
+        />
+      ) : isSpecialLayer ? null : activeLayerId === "muscles" ? (
+        <MuscleRegionHotspots
+          activeImpactId={Object.entries(impactEmphasis).find(([systemId]) => systemId === "muscles")?.[1] || "none"}
+          selectMuscleRegion={selectMuscleRegion}
+          selectedMuscleRegionId={selectedMuscleRegionId}
+        />
       ) : (
         <OrganHotspots
           impactEmphasis={impactEmphasis}
@@ -452,8 +459,16 @@ function ModelLayerContent({
           systems={systems}
         />
       )}
-      <CameraRig activeLayerId={activeLayerId} drawerOpen={drawerOpen} modelMetrics={modelMetrics} selectedOrgan={selectedOrgan} selectedOrganId={selectedOrganId} />
+      <CameraRig activeLayerId={activeLayerId} drawerOpen={drawerOpen} modelMetrics={modelMetrics} selectedMuscleRegionId={selectedMuscleRegionId} selectedOrgan={selectedOrgan} selectedOrganId={selectedOrganId} />
       <ShadowDisk modelMetrics={modelMetrics} />
+      <ContactShadows
+        blur={2.4}
+        far={modelMetrics.scaledRadius * 2.1}
+        frames={1}
+        opacity={0.16}
+        position={[0, modelMetrics.footY - 0.035, 0]}
+        scale={Math.max(2.2, modelMetrics.scaledWidth * 1.6)}
+      />
     </>
   );
 }
@@ -464,37 +479,21 @@ function AnatomyModel({ activeLayerId, calibrationEnabled, modelPath, onMetrics,
   const modelMetrics = useMemo(() => calculateModelMetrics(scene, targetHeight), [scene, targetHeight]);
   const organMeshMap = useMemo(() => activeLayerId === "full-body" ? detectOrganMeshes(scene, systems) : {}, [activeLayerId, scene, systems]);
   const separateOrganMeshes = Object.keys(organMeshMap).length > 1;
-  const fadeOpacityRef = useRef(activeLayerId === "oral" ? 0 : 1);
+  const modelRotation = LAYER_MODEL_ROTATIONS[activeLayerId] || [0, 0, 0];
 
   useEffect(() => {
     scene.traverse((object) => {
       if (!object.isMesh) return;
         object.castShadow = true;
         object.receiveShadow = true;
-        if (object.material) {
-          object.material = prepareClinicalMaterial(object.material, activeLayerId);
+        if (object.material && activeLayerId !== "oral") {
+          object.material = prepareClinicalMaterial(object.material);
       }
     });
     onMetrics(modelMetrics);
   }, [activeLayerId, modelMetrics, onMetrics, scene]);
 
-  useEffect(() => {
-    fadeOpacityRef.current = activeLayerId === "oral" ? 0 : 1;
-  }, [activeLayerId, scene]);
-
   useFrame(() => {
-    if (activeLayerId === "oral" && fadeOpacityRef.current < 1) {
-      fadeOpacityRef.current = Math.min(1, fadeOpacityRef.current + 0.045);
-      scene.traverse((object) => {
-        if (!object.isMesh || !object.material) return;
-        const materials = Array.isArray(object.material) ? object.material : [object.material];
-        materials.forEach((material) => {
-          material.transparent = fadeOpacityRef.current < 1;
-          material.opacity = fadeOpacityRef.current;
-          material.needsUpdate = true;
-        });
-      });
-    }
     if (!separateOrganMeshes) return;
     scene.traverse((object) => {
       if (!object.isMesh || !object.material) return;
@@ -525,7 +524,7 @@ function AnatomyModel({ activeLayerId, calibrationEnabled, modelPath, onMetrics,
       }}
       scale={modelMetrics.scale}
       position={modelMetrics.center.clone().multiplyScalar(-modelMetrics.scale)}
-      rotation={[0, 0, 0]}
+      rotation={modelRotation}
     />
   );
 }
@@ -583,40 +582,153 @@ function OrganHotspots({ calibrationVersion, impactEmphasis, relationshipIds, se
   );
 }
 
-function LayerFocusMarker({ selectOrgan, selectedOrganId }) {
-  const active = true;
-  const markerPosition = {
-    bones: [0.18, -0.98, 0.34],
-    brain: [0, 0.2, 0.42],
-    heart: [0.12, 0.04, 0.44],
-  }[selectedOrganId] || [0, 0, 0.42];
+function MuscleRegionHotspots({ activeImpactId, selectMuscleRegion, selectedMuscleRegionId }) {
+  const proteinImpactActive = activeImpactId === "primary" || activeImpactId === "secondary";
   return (
-    <Html center position={markerPosition} transform={false} zIndexRange={[60, 20]}>
-      <button
-        aria-label={`${selectedOrganId} anatomy layer`}
-        aria-pressed={active}
-        className={`relative flex h-11 w-11 items-center justify-center rounded-full transition hover:scale-105 focus:outline-none focus:ring-4 focus:ring-[rgb(122_31_43_/_0.18)] ${active ? "nutrimap-marker-active" : ""}`}
-        onClick={(event) => {
-          event.stopPropagation();
-          event.nativeEvent?.stopImmediatePropagation?.();
-          selectOrgan(selectedOrganId);
-        }}
-        onPointerDown={(event) => {
-          event.stopPropagation();
-          event.nativeEvent?.stopImmediatePropagation?.();
-        }}
-        onPointerUp={(event) => {
-          event.stopPropagation();
-          event.nativeEvent?.stopImmediatePropagation?.();
-        }}
-        title={selectedOrganId}
-        type="button"
-      >
-        <span className={`flex items-center justify-center rounded-full border-2 border-white bg-white shadow-[var(--np-shadow-sm)] transition ${active ? "h-[22px] w-[22px] ring-4 ring-[rgb(122_31_43_/_0.18)]" : "h-4 w-4"}`}>
-          <span className={`rounded-full ${active ? "h-2.5 w-2.5" : "h-2 w-2"} ${statusDotClass("Red")}`} />
-        </span>
-      </button>
-    </Html>
+    <>
+      {MUSCLE_REGION_HOTSPOTS.map((region) => {
+        const active = selectedMuscleRegionId === region.id;
+        const dimmed = selectedMuscleRegionId !== MUSCLE_REGION_DEFAULT_ID && !active;
+        return (
+          <Html center key={region.id} occlude position={region.position} transform={false} zIndexRange={[62, 20]}>
+            <div className={`group relative ${region.mobileVisible ? "flex" : "hidden sm:flex"} ${dimmed ? "opacity-45" : "opacity-100"}`}>
+              <button
+                aria-label={`Muscle region: ${region.label}`}
+                aria-pressed={active}
+                className={`relative flex h-10 w-10 items-center justify-center rounded-full transition hover:scale-105 focus:outline-none focus:ring-4 focus:ring-[rgb(122_31_43_/_0.16)] ${active ? "nutrimap-marker-active" : ""}`}
+                onClick={(event) => {
+                  event.stopPropagation();
+                  event.nativeEvent?.stopImmediatePropagation?.();
+                  selectMuscleRegion?.(region.id);
+                }}
+                onPointerDown={(event) => {
+                  event.stopPropagation();
+                  event.nativeEvent?.stopImmediatePropagation?.();
+                }}
+                onPointerUp={(event) => {
+                  event.stopPropagation();
+                  event.nativeEvent?.stopImmediatePropagation?.();
+                }}
+                title={region.label}
+                type="button"
+              >
+                <span className={`flex items-center justify-center rounded-full border-2 border-white bg-white shadow-[var(--np-shadow-sm)] transition ${active ? "h-[21px] w-[21px] ring-4 ring-[rgb(122_31_43_/_0.16)]" : "h-4 w-4"} ${proteinImpactActive ? "ring-2 ring-[rgb(95_168_163_/_0.18)]" : ""}`}>
+                  <span className={`rounded-full ${active ? "h-2.5 w-2.5 bg-[var(--np-color-brand)]" : "h-2 w-2 bg-[var(--np-color-secondary)]"}`} />
+                </span>
+              </button>
+              <div className={`pointer-events-none absolute left-1/2 top-10 z-50 w-max max-w-44 -translate-x-1/2 rounded-[14px] border border-[var(--np-color-border-soft)] bg-white/95 px-3 py-2 text-left text-xs font-extrabold text-[var(--np-color-text)] shadow-[var(--np-shadow-card)] ${active ? "block" : "hidden group-hover:block group-focus-within:block"}`}>
+                {region.label}
+              </div>
+            </div>
+          </Html>
+        );
+      })}
+    </>
+  );
+}
+
+function BodyNavigatorHotspots({ selectOrgan, selectedOrganId }) {
+  const TAP_THRESHOLD = 10;
+  const pointerStateRef = useRef({
+    dragging: false,
+    organId: "",
+    startX: 0,
+    startY: 0,
+    suppressClick: false,
+  });
+
+  const handlePointerDown = useCallback((event, organId) => {
+    event.stopPropagation();
+    event.nativeEvent?.stopImmediatePropagation?.();
+    pointerStateRef.current = {
+      dragging: false,
+      organId,
+      startX: event.clientX,
+      startY: event.clientY,
+      suppressClick: false,
+    };
+  }, []);
+
+  const handlePointerMove = useCallback((event) => {
+    const state = pointerStateRef.current;
+    const distance = Math.hypot(event.clientX - state.startX, event.clientY - state.startY);
+    if (distance > TAP_THRESHOLD) {
+      state.dragging = true;
+      state.suppressClick = true;
+    }
+  }, []);
+
+  const handlePointerUp = useCallback((event, organId) => {
+    event.stopPropagation();
+    event.nativeEvent?.stopImmediatePropagation?.();
+    const state = pointerStateRef.current;
+    const distance = Math.hypot(event.clientX - state.startX, event.clientY - state.startY);
+    const isTap = state.organId === organId && distance <= TAP_THRESHOLD && !state.dragging;
+    if (isTap) {
+      state.suppressClick = true;
+      selectOrgan(organId);
+    }
+    window.setTimeout(() => {
+      pointerStateRef.current.suppressClick = false;
+    }, 90);
+  }, [selectOrgan]);
+
+  const handleClick = useCallback((event, organId) => {
+    event.stopPropagation();
+    event.nativeEvent?.stopImmediatePropagation?.();
+    if (pointerStateRef.current.suppressClick) {
+      event.preventDefault();
+      return;
+    }
+    selectOrgan(organId);
+  }, [selectOrgan]);
+
+  const handleKeyDown = useCallback((event, organId) => {
+    if (event.key !== "Enter" && event.key !== " ") return;
+    event.preventDefault();
+    event.stopPropagation();
+    selectOrgan(organId);
+  }, [selectOrgan]);
+
+  return (
+    <>
+      {BODY_NAVIGATOR_HOTSPOTS.map((hotspot) => {
+        const active = selectedOrganId === hotspot.organId;
+        return (
+          <Html center key={hotspot.id} occlude position={hotspot.position} transform={false} zIndexRange={[64, 20]}>
+            <div className="group relative flex">
+              <button
+                aria-label={`Open ${hotspot.label} anatomy layer`}
+                aria-pressed={active}
+                className={`relative flex h-11 w-11 items-center justify-center rounded-full transition hover:scale-105 focus:outline-none focus:ring-4 focus:ring-[rgb(122_31_43_/_0.16)] ${active ? "nutrimap-marker-active" : ""}`}
+                onClick={(event) => {
+                  handleClick(event, hotspot.organId);
+                }}
+                onPointerDown={(event) => {
+                  handlePointerDown(event, hotspot.organId);
+                }}
+                onPointerMove={handlePointerMove}
+                onPointerUp={(event) => {
+                  handlePointerUp(event, hotspot.organId);
+                }}
+                onKeyDown={(event) => {
+                  handleKeyDown(event, hotspot.organId);
+                }}
+                title={hotspot.label}
+                type="button"
+              >
+                <span className={`flex items-center justify-center rounded-full border-2 border-white bg-white shadow-[var(--np-shadow-sm)] transition ${active ? "h-[22px] w-[22px] ring-4 ring-[rgb(122_31_43_/_0.18)]" : "h-4 w-4"}`}>
+                  <span className={`rounded-full ${active ? "h-2.5 w-2.5 bg-[var(--np-color-brand)]" : "h-2 w-2 bg-[var(--np-color-secondary)]"}`} />
+                </span>
+              </button>
+              <div className={`pointer-events-none absolute left-1/2 top-11 z-50 w-max max-w-48 -translate-x-1/2 rounded-[14px] border border-[var(--np-color-border-soft)] bg-white/95 px-3 py-2 text-left text-xs font-extrabold text-[var(--np-color-text)] shadow-[var(--np-shadow-card)] ${active ? "block" : "hidden group-hover:block group-focus-within:block"}`}>
+                {hotspot.label}
+              </div>
+            </div>
+          </Html>
+        );
+      })}
+    </>
   );
 }
 
@@ -653,7 +765,6 @@ function OrganHotspotButton({ item, onSelect, selectedOrganId }) {
         data-organ-id={hotspot.organId}
         onClick={handleSelect}
         onDoubleClick={stopHotspotEvent}
-        onFocus={handleSelect}
         onPointerDown={stopHotspotEvent}
         onPointerUp={stopHotspotEvent}
         title={system.label}
@@ -723,36 +834,57 @@ function HotspotCalibrationPanel({ onCalibrationChange, selectedOrganId }) {
   );
 }
 
-function CameraRig({ activeLayerId, drawerOpen, modelMetrics, selectedOrgan, selectedOrganId }) {
+function CameraRig({ activeLayerId, drawerOpen, modelMetrics, selectedMuscleRegionId, selectedOrgan, selectedOrganId }) {
   const { camera, controls } = useThree();
-  const focusFrames = useRef(0);
+  const cameraRef = useRef(camera);
+  const transitionRef = useRef({ duration: 1, remaining: 0 });
+  const startPositionRef = useRef(camera.position.clone());
+  const startTargetRef = useRef(new THREE.Vector3());
   const manualTargetRef = useRef(null);
   const manualPositionRef = useRef(null);
   const initialView = useMemo(() => reframeViewerForPanel(modelMetrics, drawerOpen), [drawerOpen, modelMetrics]);
-  const activePreset = useMemo(() => getOrganCameraPreset(selectedOrgan, modelMetrics, drawerOpen, activeLayerId), [activeLayerId, drawerOpen, modelMetrics, selectedOrgan]);
+  const activePreset = useMemo(() => getOrganCameraPreset(selectedOrgan, modelMetrics, drawerOpen, activeLayerId, selectedMuscleRegionId), [activeLayerId, drawerOpen, modelMetrics, selectedMuscleRegionId, selectedOrgan]);
   const selectedTarget = activePreset.target;
   const desiredCameraPosition = activePreset.position;
 
   useEffect(() => {
-    focusFrames.current = 48;
+    cameraRef.current = camera;
+  }, [camera]);
+
+  useEffect(() => {
+    const activeCamera = cameraRef.current;
+    activeCamera.near = activePreset.near || 0.04;
+    activeCamera.far = activePreset.far || 100;
+    activeCamera.fov = activePreset.fov || 36;
+    activeCamera.updateProjectionMatrix();
+  }, [activePreset.far, activePreset.fov, activePreset.near]);
+
+  useEffect(() => {
+    startPositionRef.current = camera.position.clone();
+    startTargetRef.current = controls?.target?.clone?.() || new THREE.Vector3();
+    transitionRef.current = { duration: 58, remaining: 58 };
     manualPositionRef.current = null;
     manualTargetRef.current = null;
-  }, [activeLayerId, drawerOpen, selectedOrganId]);
+  }, [activeLayerId, camera, controls, drawerOpen, selectedMuscleRegionId, selectedOrganId]);
 
   useEffect(() => {
     const setView = (event) => {
       const view = event.detail || initialView;
+      startPositionRef.current = camera.position.clone();
+      startTargetRef.current = controls?.target?.clone?.() || new THREE.Vector3();
       manualPositionRef.current = new THREE.Vector3(...view.position);
       manualTargetRef.current = new THREE.Vector3(...view.target);
-      focusFrames.current = 36;
+      transitionRef.current = { duration: 42, remaining: 42 };
     };
     const zoomView = (event) => {
       const direction = event.detail?.direction === "in" ? -1 : 1;
       const zoomStep = modelMetrics.scaledRadius * 0.35 * direction;
       const currentDirection = camera.position.clone().sub(controls?.target || new THREE.Vector3()).normalize();
+      startPositionRef.current = camera.position.clone();
+      startTargetRef.current = controls?.target?.clone?.() || new THREE.Vector3();
       manualPositionRef.current = camera.position.clone().add(currentDirection.multiplyScalar(zoomStep));
       manualTargetRef.current = controls?.target?.clone?.() || new THREE.Vector3();
-      focusFrames.current = 24;
+      transitionRef.current = { duration: 28, remaining: 28 };
     };
     window.addEventListener("nutrimap:set-view", setView);
     window.addEventListener("nutrimap:zoom", zoomView);
@@ -763,15 +895,18 @@ function CameraRig({ activeLayerId, drawerOpen, modelMetrics, selectedOrgan, sel
   }, [camera, controls, initialView, modelMetrics.scaledRadius]);
 
   useFrame(() => {
-    if (focusFrames.current <= 0) return;
+    if (transitionRef.current.remaining <= 0) return;
     const targetPosition = manualPositionRef.current || desiredCameraPosition;
     const targetLookAt = manualTargetRef.current || selectedTarget;
-    camera.position.lerp(targetPosition, 0.075);
+    const elapsed = transitionRef.current.duration - transitionRef.current.remaining + 1;
+    const progress = Math.min(elapsed / transitionRef.current.duration, 1);
+    const easedProgress = easeInOutCubic(progress);
+    camera.position.lerpVectors(startPositionRef.current, targetPosition, easedProgress);
     if (controls?.target) {
-      controls.target.lerp(targetLookAt, 0.1);
+      controls.target.lerpVectors(startTargetRef.current, targetLookAt, easedProgress);
       controls.update();
     }
-    focusFrames.current -= 1;
+    transitionRef.current.remaining -= 1;
   });
 
   return null;
@@ -786,11 +921,11 @@ function ShadowDisk({ modelMetrics }) {
   );
 }
 
-function ViewerControls({ autoRotateEnabled, modelMetrics, setAutoRotateEnabled }) {
-  const view = getInitialView(modelMetrics);
+function ViewerControls({ activeLayerId, autoRotateEnabled, modelMetrics, setAutoRotateEnabled }) {
+  const view = getLayerCameraView(activeLayerId, modelMetrics);
 
   function setView(type) {
-    window.dispatchEvent(new CustomEvent("nutrimap:set-view", { detail: getViewerPreset(type, modelMetrics) }));
+    window.dispatchEvent(new CustomEvent("nutrimap:set-view", { detail: getViewerPreset(type, modelMetrics, activeLayerId) }));
   }
 
   function zoom(direction) {
@@ -856,17 +991,22 @@ function ViewerControls({ autoRotateEnabled, modelMetrics, setAutoRotateEnabled 
   );
 }
 
-function ModelLoadingFallback() {
-  const meshRef = useRef(null);
-  useFrame((state) => {
-    if (meshRef.current) meshRef.current.rotation.y = state.clock.elapsedTime * 0.35;
-  });
+function ModelLoadingFallback({ activeLayer }) {
+  const { progress } = useProgress();
+  const safeProgress = Number.isFinite(progress) ? Math.round(progress) : 0;
 
   return (
-    <mesh ref={meshRef} position={[0, 0, 0]}>
-      <capsuleGeometry args={[0.42, 1.7, 16, 32]} />
-      <meshStandardMaterial color="#7A1F2B" opacity={0.12} transparent />
-    </mesh>
+    <Html center transform={false}>
+      <div className="min-w-52 rounded-[20px] border border-[var(--np-color-border-soft)] bg-white/92 p-4 text-center shadow-[var(--np-shadow-card)]">
+        <div className="mx-auto h-9 w-9 animate-spin rounded-full border-2 border-[rgb(122_31_43_/_0.18)] border-t-[var(--np-color-brand)]" />
+        <p className="mt-3 text-sm font-extrabold text-[var(--np-color-text)]">
+          Loading anatomy model...
+        </p>
+        <p className="mt-1 text-xs font-bold text-[var(--np-color-text-muted)]">
+          {activeLayer?.title || activeLayer?.caption || activeLayer?.id || "Anatomy layer"} · {safeProgress}%
+        </p>
+      </div>
+    </Html>
   );
 }
 
@@ -910,13 +1050,64 @@ function calculateModelMetrics(scene, targetHeight = TARGET_MODEL_HEIGHT) {
 
 function getInitialView(modelMetrics) {
   const fovRadians = THREE.MathUtils.degToRad(36);
-  const distance = (modelMetrics.scaledRadius / Math.tan(fovRadians / 2)) * 1.18;
+  const distance = (modelMetrics.scaledRadius / Math.tan(fovRadians / 2)) * DEFAULT_LAYER_CAMERA_PRESET.distance;
   return {
     distance,
     maxDistance: modelMetrics.scaledRadius * 4.8,
     minDistance: modelMetrics.scaledRadius * 1.25,
     position: [0, 0, distance],
     target: [0, 0, 0],
+  };
+}
+
+function getLayerCameraView(activeLayerId, modelMetrics, drawerOpen = false) {
+  const preset = LAYER_CAMERA_PRESETS[activeLayerId] || DEFAULT_LAYER_CAMERA_PRESET;
+  const fov = preset.fov || 36;
+  if (preset.fixedPosition && preset.fixedTarget) {
+    const panelShift = drawerOpen ? -modelMetrics.scaledWidth * 0.1 : 0;
+    const position = [...preset.fixedPosition];
+    const target = [...preset.fixedTarget];
+    position[0] += panelShift;
+    target[0] += panelShift;
+
+    return {
+      distance: position[2],
+      far: preset.far,
+      fov,
+      maxDistance: modelMetrics.scaledRadius * 4.8,
+      minDistance: modelMetrics.scaledRadius * 0.8,
+      near: preset.near,
+      position,
+      target,
+      yaw: preset.yaw,
+    };
+  }
+
+  const fovRadians = THREE.MathUtils.degToRad(fov);
+  const fitDistance = modelMetrics.scaledRadius / Math.tan(fovRadians / 2);
+  const panelShift = drawerOpen ? -modelMetrics.scaledWidth * 0.1 : 0;
+  const distance = fitDistance * preset.distance;
+  const position = [
+    modelMetrics.scaledWidth * preset.offsetX + panelShift,
+    modelMetrics.scaledHeight * preset.offsetY,
+    distance,
+  ];
+  const target = [
+    panelShift,
+    modelMetrics.scaledHeight * preset.targetY,
+    0,
+  ];
+
+  return {
+    distance,
+    far: preset.far,
+    fov,
+    maxDistance: modelMetrics.scaledRadius * 4.8,
+    minDistance: modelMetrics.scaledRadius * 1.18,
+    near: preset.near,
+    position,
+    target,
+    yaw: preset.yaw,
   };
 }
 
@@ -932,8 +1123,8 @@ function reframeViewerForPanel(modelMetrics, drawerOpen) {
   };
 }
 
-function getViewerPreset(type, modelMetrics) {
-  const initialView = getInitialView(modelMetrics);
+function getViewerPreset(type, modelMetrics, activeLayerId = "full-body") {
+  const initialView = getLayerCameraView(activeLayerId, modelMetrics);
   if (type === "left") {
     return {
       ...initialView,
@@ -949,18 +1140,41 @@ function getViewerPreset(type, modelMetrics) {
   return initialView;
 }
 
-function getOrganCameraPreset(system, modelMetrics, drawerOpen = false, activeLayerId = "full-body") {
+function getOrganCameraPreset(system, modelMetrics, drawerOpen = false, activeLayerId = "full-body", selectedMuscleRegionId = MUSCLE_REGION_DEFAULT_ID) {
   if (activeLayerId !== "full-body" && activeLayerId !== "muscles") {
-    const view = reframeViewerForPanel(modelMetrics, drawerOpen);
-    const threeQuarterOffset = activeLayerId === "heart" ? modelMetrics.scaledWidth * 0.32 : activeLayerId === "liver" ? modelMetrics.scaledWidth * 0.2 : activeLayerId === "kidneys" ? modelMetrics.scaledWidth * 0.16 : activeLayerId === "pancreas" ? modelMetrics.scaledWidth * 0.18 : activeLayerId === "circulatory" ? modelMetrics.scaledWidth * 0.12 : 0;
-    const verticalLift = activeLayerId === "heart" ? modelMetrics.scaledHeight * 0.05 : activeLayerId === "oral" ? modelMetrics.scaledHeight * 0.02 : activeLayerId === "digestive" ? modelMetrics.scaledHeight * 0.03 : activeLayerId === "liver" ? modelMetrics.scaledHeight * 0.03 : activeLayerId === "kidneys" ? modelMetrics.scaledHeight * 0.04 : activeLayerId === "pancreas" ? modelMetrics.scaledHeight * 0.02 : activeLayerId === "circulatory" ? modelMetrics.scaledHeight * 0.01 : 0;
-    const distanceScale = activeLayerId === "heart" ? 0.92 : activeLayerId === "oral" ? 0.86 : activeLayerId === "digestive" ? 0.9 : activeLayerId === "liver" ? 0.88 : activeLayerId === "kidneys" ? 0.9 : activeLayerId === "pancreas" ? 0.88 : activeLayerId === "circulatory" ? 0.96 : 1;
+    const view = getLayerCameraView(activeLayerId, modelMetrics, drawerOpen);
     return {
       anchor: [0, 0, 0],
+      far: view.far,
+      fov: view.fov,
       module: system?.id === "heart" ? "assessment" : system?.id === "oral-cavity" || system?.id === "gastrointestinal" ? "dietary" : system?.id === "liver" ? "intervention" : "laboratory",
-      position: new THREE.Vector3(threeQuarterOffset, verticalLift, view.distance * distanceScale),
-      rotation: [0, activeLayerId === "liver" ? 0.18 : activeLayerId === "kidneys" ? 0.17 : activeLayerId === "pancreas" ? 0.18 : activeLayerId === "circulatory" ? 0.12 : threeQuarterOffset ? 0.14 : 0, 0],
+      position: new THREE.Vector3(...view.position),
+      near: view.near,
+      rotation: [0, view.yaw, 0],
       target: new THREE.Vector3(...view.target),
+    };
+  }
+
+  if (activeLayerId === "muscles" && selectedMuscleRegionId !== MUSCLE_REGION_DEFAULT_ID) {
+    const region = getMuscleRegion(selectedMuscleRegionId);
+    const anchor = region.position || [0, 0, 0.42];
+    const targetOffset = region.cameraTargetOffset || [0, 0, 0];
+    const baseView = reframeViewerForPanel(modelMetrics, drawerOpen);
+    const panelShift = drawerOpen ? -modelMetrics.scaledWidth * 0.1 : 0;
+    const target = new THREE.Vector3(
+      anchor[0] * 0.42 + targetOffset[0] + panelShift,
+      anchor[1] * 0.52 + targetOffset[1],
+      0,
+    );
+    return {
+      anchor,
+      far: 100,
+      fov: 36,
+      module: "assessment",
+      position: new THREE.Vector3(target.x * 0.42, target.y * 0.16, baseView.distance * 0.92),
+      near: 0.04,
+      rotation: [0, target.x * 0.08, 0],
+      target,
     };
   }
 
@@ -982,6 +1196,8 @@ function getOrganCameraPreset(system, modelMetrics, drawerOpen = false, activeLa
 
   return {
     anchor,
+    far: 100,
+    fov: 36,
     module: {
       "blood-iron": "laboratory",
       bones: "laboratory",
@@ -995,9 +1211,16 @@ function getOrganCameraPreset(system, modelMetrics, drawerOpen = false, activeLa
       pancreas: "laboratory",
     }[system?.id] || "summary",
     position: new THREE.Vector3(anchorTarget.x + sideBias + panelShift, anchorTarget.y * 0.18, distance),
+    near: 0.04,
     rotation: [0, sideBias, 0],
     target: anchorTarget.clone().add(new THREE.Vector3(panelShift, 0, 0)),
   };
+}
+
+function easeInOutCubic(value) {
+  return value < 0.5
+    ? 4 * value * value * value
+    : 1 - ((-2 * value + 2) ** 3) / 2;
 }
 
 function isCalibrationModeEnabled() {
@@ -1034,7 +1257,7 @@ function normalizeName(value) {
   return String(value || "").toLowerCase().replace(/[^a-z0-9]/g, "");
 }
 
-function prepareClinicalMaterial(sourceMaterial, activeLayerId) {
+function prepareClinicalMaterial(sourceMaterial) {
   const material = Array.isArray(sourceMaterial)
     ? sourceMaterial.map((item) => item?.clone?.() || item)
     : sourceMaterial.clone();
@@ -1043,59 +1266,8 @@ function prepareClinicalMaterial(sourceMaterial, activeLayerId) {
   materials.forEach((item) => {
     if (!item) return;
     applyTextureColorSpace(item);
-
-    if (activeLayerId === "heart") {
-      if (typeof item.roughness === "number") item.roughness = Math.min(item.roughness, 0.5);
-      if (typeof item.metalness === "number") item.metalness = Math.min(item.metalness, 0.08);
-      item.envMapIntensity = Math.max(item.envMapIntensity || 0, 0.85);
-    } else if (activeLayerId === "skeleton" || activeLayerId === "brain" || activeLayerId === "oral" || activeLayerId === "digestive" || activeLayerId === "liver" || activeLayerId === "kidneys" || activeLayerId === "pancreas" || activeLayerId === "circulatory") {
-      if (activeLayerId === "skeleton") {
-        if (item.color) item.color = new THREE.Color("#F2E6D5");
-        if (typeof item.roughness === "number") item.roughness = 0.74;
-        if (typeof item.metalness === "number") item.metalness = 0;
-        item.envMapIntensity = Math.max(item.envMapIntensity || 0, 0.78);
-      } else if (activeLayerId === "oral") {
-        if (item.color) item.color = new THREE.Color("#B87474");
-        if (typeof item.roughness === "number") item.roughness = 0.82;
-        if (typeof item.metalness === "number") item.metalness = 0;
-        if (typeof item.aoMapIntensity === "number") item.aoMapIntensity = Math.max(item.aoMapIntensity || 0, 1.45);
-        item.envMapIntensity = Math.min(Math.max(item.envMapIntensity || 0, 0.28), 0.42);
-      } else if (activeLayerId === "digestive") {
-        if (typeof item.roughness === "number") item.roughness = Math.min(Math.max(item.roughness, 0.54), 0.76);
-        if (typeof item.metalness === "number") item.metalness = Math.min(item.metalness, 0.04);
-        if (typeof item.aoMapIntensity === "number") item.aoMapIntensity = Math.max(item.aoMapIntensity || 0, 1.22);
-        item.envMapIntensity = Math.min(Math.max(item.envMapIntensity || 0, 0.38), 0.58);
-      } else if (activeLayerId === "liver") {
-        if (typeof item.roughness === "number") item.roughness = Math.min(Math.max(item.roughness, 0.58), 0.78);
-        if (typeof item.metalness === "number") item.metalness = Math.min(item.metalness, 0.03);
-        if (typeof item.aoMapIntensity === "number") item.aoMapIntensity = Math.max(item.aoMapIntensity || 0, 1.28);
-        item.envMapIntensity = Math.min(Math.max(item.envMapIntensity || 0, 0.34), 0.52);
-      } else if (activeLayerId === "kidneys") {
-        if (typeof item.roughness === "number") item.roughness = Math.min(Math.max(item.roughness, 0.56), 0.76);
-        if (typeof item.metalness === "number") item.metalness = Math.min(item.metalness, 0.03);
-        if (typeof item.aoMapIntensity === "number") item.aoMapIntensity = Math.max(item.aoMapIntensity || 0, 1.2);
-        item.envMapIntensity = Math.min(Math.max(item.envMapIntensity || 0, 0.34), 0.54);
-      } else if (activeLayerId === "pancreas") {
-        if (typeof item.roughness === "number") item.roughness = Math.min(Math.max(item.roughness, 0.54), 0.76);
-        if (typeof item.metalness === "number") item.metalness = Math.min(item.metalness, 0.03);
-        if (typeof item.aoMapIntensity === "number") item.aoMapIntensity = Math.max(item.aoMapIntensity || 0, 1.18);
-        item.envMapIntensity = Math.min(Math.max(item.envMapIntensity || 0, 0.34), 0.54);
-      } else if (activeLayerId === "circulatory") {
-        if (typeof item.roughness === "number") item.roughness = Math.min(Math.max(item.roughness, 0.48), 0.72);
-        if (typeof item.metalness === "number") item.metalness = Math.min(item.metalness, 0.04);
-        if (typeof item.aoMapIntensity === "number") item.aoMapIntensity = Math.max(item.aoMapIntensity || 0, 1.16);
-        item.envMapIntensity = Math.min(Math.max(item.envMapIntensity || 0, 0.32), 0.5);
-      } else {
-        if (typeof item.roughness === "number") item.roughness = Math.min(item.roughness, 0.78);
-        if (typeof item.metalness === "number") item.metalness = Math.min(item.metalness, 0.05);
-        item.envMapIntensity = Math.max(item.envMapIntensity || 0, 0.65);
-      }
-    } else {
-      if (typeof item.roughness === "number") item.roughness = Math.min(item.roughness, 0.62);
-      if (typeof item.metalness === "number") item.metalness = Math.min(item.metalness, 0.08);
-      item.envMapIntensity = Math.max(item.envMapIntensity || 0, 0.55);
-    }
-
+    item.transparent = false;
+    item.opacity = 1;
     item.needsUpdate = true;
   });
 
