@@ -9,6 +9,7 @@ export const globalSearchAliases = [
   ["appointment", "موعد", "schedule", "جدول"],
   ["research", "بحث", "دراسة"],
   ["nutrition", "تغذية", "dietary", "غذائي"],
+  ["education", "تثقيف", "guide", "دليل", "nutriguide"],
   ["assessment", "تقييم", "anthropometric", "قياسات"],
   ["diagnosis", "تشخيص", "pes"],
   ["intervention", "تدخل", "plan", "خطة"],
@@ -81,6 +82,7 @@ export function buildGlobalSearchResults(query, { activePatient, patients = [], 
     ...buildTaskResults(expandedQuery, tasks, patients),
     ...buildScheduleResults(expandedQuery, schedule, patients),
     ...buildResearchResults(expandedQuery),
+    ...buildNutriGuideResults(expandedQuery),
     ...buildNutriMapResults(expandedQuery),
     ...buildAiResults(expandedQuery, activePatient),
   ];
@@ -258,6 +260,25 @@ function buildResearchResults(query) {
       page: "research",
       text: `${section} research بحث study protocol dataset publication`,
       title: section,
+    }, query),
+  );
+}
+
+function buildNutriGuideResults(query) {
+  return [
+    ["For You", "Personalized educational materials from documented patient context."],
+    ["Sent by Your Dietitian", "Educational materials assigned by the dietitian."],
+    ["All Topics", "Browse nutrition education topics, guides, recipes, and checklists."],
+    ["Recipes & Meal Ideas", "General educational recipes and meal ideas."],
+    ["Saved", "Saved patient education materials."],
+  ].map(([title, description]) =>
+    createResult({
+      category: "NutriGuide",
+      description,
+      group: "Clinical",
+      page: "nutriguide",
+      text: `${title} nutriguide nutrition education تثقيف تغذية دليل وصفات recipes patient portal`,
+      title,
     }, query),
   );
 }

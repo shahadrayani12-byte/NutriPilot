@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 600" role="img" aria-labelledby="title desc">
+  <title id="title">Healthy meal ideas</title>
+  <desc id="desc">Balanced bowl containing vegetables, whole grains, and protein.</desc>
+  <defs>
+    <linearGradient id="bg" x1="0" x2="1" y1="0" y2="1"><stop stop-color="#f0fdf4"/><stop offset="1" stop-color="#fef3c7"/></linearGradient>
+    <filter id="shadow"><feDropShadow dx="0" dy="22" stdDeviation="20" flood-color="#166534" flood-opacity=".14"/></filter>
+  </defs>
+  <rect width="800" height="600" fill="url(#bg)"/>
+  <circle cx="400" cy="330" r="218" fill="#ffffff" filter="url(#shadow)"/>
+  <circle cx="400" cy="330" r="181" fill="#f8fafc"/>
+  <path d="M400 150a180 180 0 0 1 156 90L400 330Z" fill="#fb923c"/>
+  <path d="M556 240a180 180 0 0 1-18 209L400 330Z" fill="#22c55e"/>
+  <path d="M538 449a180 180 0 0 1-219 39l81-158Z" fill="#facc15"/>
+  <path d="M319 488a180 180 0 0 1-96-188l177 30Z" fill="#84cc16"/>
+  <path d="M223 300a180 180 0 0 1 177-150v180Z" fill="#ef4444"/>
+  <g fill="#14532d" opacity=".85">
+    <circle cx="500" cy="302" r="15"/><circle cx="532" cy="338" r="13"/><circle cx="490" cy="376" r="12"/>
+  </g>
+  <g fill="#fff7ed" stroke="#d97706" stroke-width="7">
+    <rect x="319" y="192" width="138" height="76" rx="28" transform="rotate(22 388 230)"/>
+  </g>
+  <g fill="#7f1d1d">
+    <circle cx="284" cy="276" r="14"/><circle cx="327" cy="247" r="12"/><circle cx="352" cy="296" r="13"/>
+  </g>
+</svg>

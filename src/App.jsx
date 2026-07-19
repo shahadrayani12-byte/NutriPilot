@@ -4,6 +4,7 @@ import {
   LayoutDashboard,
   Users,
   Bot,
+  BookOpen,
   FileText,
   Settings,
   BriefcaseMedical,
@@ -28,6 +29,7 @@ import ReportsCenter from "./pages/ReportsCenter";
 import InboxCenter from "./pages/InboxCenter";
 import ScheduleCenter from "./pages/ScheduleCenter";
 import TaskCommandCenter from "./pages/TaskCommandCenter";
+import NutriGuideCenter from "./pages/NutriGuideCenter";
 import { AppStateProvider } from "./context/AppStateProvider";
 import { PatientProvider } from "./context/PatientContext";
 import { useAppState } from "./context/useAppState";
@@ -54,15 +56,24 @@ function AppShell() {
   const {
     activePatient,
     aiSummary,
+    addAppointment,
+    addEducationAssignments,
     completeWorkflowStep,
+    deleteAppointment,
+    deleteTask,
     dispatch,
+    educationAssignments,
     intelligence,
     notifications,
     patients,
     reports,
+    savedEducationContentIds,
     schedule,
     setActivePatient,
     tasks,
+    toggleSavedEducation,
+    updateAppointment,
+    updateEducationAssignment,
     updatePatient,
     workflow,
   } = useAppState();
@@ -130,6 +141,7 @@ function AppShell() {
       items: [
         { id: "workspace", label: "Clinical Hub", icon: BriefcaseMedical },
         { id: "diet-plans", label: "Diet Plans", icon: Utensils },
+        { id: "nutriguide", label: "NutriGuide™", icon: BookOpen },
         { id: "nutrimap", label: "NutriMap™", icon: Activity },
         { id: "reports", label: "Reports", icon: FileText },
       ],
@@ -313,7 +325,7 @@ function AppShell() {
             reports={reports}
             schedule={schedule}
             setActivePatient={setActivePatient}
-            updateAppointment={(appointmentId, updates) => dispatch({ type: "UPDATE_APPOINTMENT", appointmentId, updates })}
+            updateAppointment={updateAppointment}
             updatePatient={updatePatient}
             workflow={workflow}
           />
@@ -337,6 +349,17 @@ function AppShell() {
             activePatient={activePatient}
             onNavigate={setPage}
             updatePatient={updatePatient}
+          />
+        )}
+
+        {page === "nutriguide" && (
+          <NutriGuideCenter
+            activePatient={activePatient}
+            addEducationAssignments={addEducationAssignments}
+            educationAssignments={educationAssignments}
+            savedEducationContentIds={savedEducationContentIds}
+            toggleSavedEducation={toggleSavedEducation}
+            updateEducationAssignment={updateEducationAssignment}
           />
         )}
 
@@ -414,11 +437,14 @@ function AppShell() {
 
         {page === "appointments" && (
           <ScheduleCenter
+            addAppointment={addAppointment}
             activePatient={activePatient}
+            deleteAppointment={deleteAppointment}
             onOpenClinicalHub={openPatientWorkspace}
             scheduleState={schedule}
             sharedPatients={patients}
             setActivePatient={setActivePatient}
+            updateAppointment={updateAppointment}
           />
         )}
 
@@ -426,7 +452,9 @@ function AppShell() {
           <TaskCommandCenter
             addSharedTask={(task) => dispatch({ type: "ADD_TASK", task })}
             activePatient={activePatient}
+            deleteSharedTask={deleteTask}
             onOpenClinicalHub={openPatientWorkspace}
+            schedule={schedule}
             sharedPatients={patients}
             sharedTasks={tasks}
             updateSharedTask={(taskId, updates) => dispatch({ type: "UPDATE_TASK", taskId, updates })}
@@ -537,6 +565,7 @@ function getPageTitle(page) {
     "diet-plans": "Diet Plans",
     messages: "Inbox",
     nutrimap: "NutriMap",
+    nutriguide: "NutriGuide™",
     patients: "Patients",
     reports: "Reports",
     research: "Research Center",
@@ -570,6 +599,7 @@ function translateNavigationLabel(label, t) {
     "Command Center": "navigation.commandCenter",
     "Diet Plans": "navigation.dietPlans",
     Inbox: "navigation.inbox",
+    "NutriGuide™": "navigation.nutriGuide",
     NutriMap: "navigation.nutrimap",
     "NutriMap™": "navigation.nutrimap",
     Patients: "navigation.patients",
@@ -643,7 +673,7 @@ function PlaceholderCenter({ kicker, subtitle, title }) {
 }
 
 function renderBrandSafeLabel(label) {
-  if (typeof label === "string" && label.includes("NutriMap")) {
+  if (typeof label === "string" && (label.includes("NutriMap") || label.includes("NutriGuide"))) {
     return <bdi dir="ltr">{displayTrademark(label)}</bdi>;
   }
 
@@ -652,7 +682,10 @@ function renderBrandSafeLabel(label) {
 
 function displayTrademark(label) {
   const trademark = String.fromCharCode(0x2122);
-  return label.replace("NutriMap", `NutriMap${trademark}`).replaceAll(`${trademark}${trademark}`, trademark);
+  return label
+    .replace("NutriMap", `NutriMap${trademark}`)
+    .replace("NutriGuide", `NutriGuide${trademark}`)
+    .replaceAll(`${trademark}${trademark}`, trademark);
 }
 
 

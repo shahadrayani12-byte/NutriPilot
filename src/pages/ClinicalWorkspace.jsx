@@ -2,6 +2,7 @@
 import {
   Activity,
   Bell,
+  BookOpen,
   Brain,
   CalendarDays,
   CheckCircle2,
@@ -22,6 +23,7 @@ import {
 
 import { ClinicalWorkspaceTabs } from "../components/clinical/ClinicalWorkspaceTabs";
 import { ClinicalWorkflowEngine } from "../components/clinical/ClinicalWorkflowEngine";
+import { NutritionCareJourney } from "../components/clinical/NutritionCareJourney";
 import { workspaceTabs } from "../components/clinical/clinicalData";
 import {
   NutriBadge,
@@ -36,6 +38,7 @@ import { ActivePatientBanner } from "../components/common/ActivePatientBanner";
 import { GlobalSearch } from "../components/common/GlobalSearch";
 import { normalizePatient } from "../utils/clinicalWorkspaceUtils";
 import { buildClinicalDecisionSupport } from "../utils/clinicalDecisionSupport";
+import { buildNutritionCareCore } from "../utils/nutritionCareCore";
 import { getWorkflowNextAction, getWorkflowStatus } from "../utils/workflowStatus";
 import { useTranslation } from "../i18n";
 
@@ -193,6 +196,24 @@ export default function ClinicalWorkspace({ globalSearchProps, initialTab = "sum
     if (actionId === "ai") handleSetActiveTab("ai");
   }
 
+  function usePreviousNoteAsDraft(previousNoteDraft) {
+    if (!previousNoteDraft?.available) return;
+    addDraftRow("followUps", {
+      date: "",
+      dietaryAdherence: "Needs Review",
+      goalProgress: "",
+      labTrend: "",
+      nextAction: `Review copied draft fields: ${previousNoteDraft.reviewRequired.join(", ")}`,
+      outcome: `Draft copied from previous note (${previousNoteDraft.sourceDate}). Clinician review required before finalizing.`,
+      sourceDate: previousNoteDraft.sourceDate,
+      sourceType: "Previous note draft",
+      status: "Draft",
+      symptomTrend: "",
+      weightTrend: "",
+    });
+    handleSetActiveTab("monitoring");
+  }
+
   return (
     <NutriPage>
       <ClinicalWorkspaceTopBar
@@ -235,6 +256,7 @@ export default function ClinicalWorkspace({ globalSearchProps, initialTab = "sum
           intelligence={intelligence}
           onNavigate={onNavigate}
           onOpenCompletion={() => setIsCompletionOpen(true)}
+          onUsePreviousNoteDraft={usePreviousNoteAsDraft}
           patient={clinicalDraftPatient}
           setActiveTab={handleSetActiveTab}
         />
@@ -401,9 +423,10 @@ function clinicalTabToWorkflowStep(tabId) {
   return stepByTab[tabId];
 }
 
-function ClinicalCommandCenter({ activeTab, intelligence, onNavigate, onOpenCompletion, patient, setActiveTab }) {
+function ClinicalCommandCenter({ activeTab, intelligence, onNavigate, onOpenCompletion, onUsePreviousNoteDraft, patient, setActiveTab }) {
   const [expandedSections, setExpandedSections] = useState(loadClinicalHubSections);
   const workflow = getWorkflowStatus(patient);
+  const nutritionCore = useMemo(() => buildNutritionCareCore(patient, workflow), [patient, workflow]);
 
   function toggleSection(sectionId) {
     setExpandedSections((current) => {
@@ -429,6 +452,14 @@ function ClinicalCommandCenter({ activeTab, intelligence, onNavigate, onOpenComp
             patient={patient}
             setActiveTab={setActiveTab}
           />
+          <div className="mt-3">
+            <NutritionCareJourney
+              compact
+              core={nutritionCore}
+              onOpenStage={(stage) => setActiveTab(stage.tabId || nutritionCore.journey.nextExpectedAction?.tabId || "summary")}
+              onUsePreviousNoteDraft={onUsePreviousNoteDraft}
+            />
+          </div>
           <WorkflowIntelligence workflow={workflow} />
         </CollapsibleClinicalSection>
         <CollapsibleClinicalSection
@@ -573,6 +604,7 @@ function ClinicalQuickActions({ onNavigate, setActiveTab }) {
     { icon: FileText, label: "PES Diagnosis", onClick: () => setActiveTab("pes") },
     { icon: Target, label: "Intervention", onClick: () => setActiveTab("intervention") },
     { icon: Utensils, label: "Open Diet Plan", onClick: () => onNavigate?.("diet-plans") },
+    { icon: BookOpen, label: "Send Educational Material", onClick: () => onNavigate?.("nutriguide") },
     { icon: CalendarDays, label: "Monitoring", onClick: () => setActiveTab("monitoring") },
     { icon: FileText, label: "Reports", onClick: () => onNavigate?.("reports") },
     { icon: Activity, label: "NutriMap", onClick: () => onNavigate?.("nutrimap") },
@@ -590,7 +622,7 @@ function ClinicalQuickActions({ onNavigate, setActiveTab }) {
             One-click clinical navigation
           </h3>
         </div>
-        <div className="grid w-full grid-cols-1 gap-2 sm:grid-cols-2 lg:w-auto xl:grid-cols-7">
+        <div className="grid w-full grid-cols-1 gap-2 sm:grid-cols-2 lg:w-auto xl:grid-cols-8">
           {actions.map((action) => (
             <NutriButton
               className="min-h-10 justify-center px-3 text-xs"

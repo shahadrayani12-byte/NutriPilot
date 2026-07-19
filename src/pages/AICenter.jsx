@@ -25,13 +25,16 @@ import {
   NutriSectionHeader,
 } from "../components/common/NutriPilotPrimitives";
 import { ActivePatientBanner } from "../components/common/ActivePatientBanner";
+import { NutritionCareCorePanel } from "../components/clinical/NutritionCareJourney";
 import { useTranslation } from "../i18n";
+import { buildNutritionCareCore } from "../utils/nutritionCareCore";
 import { getWorkflowNextAction, getWorkflowStatus } from "../utils/workflowStatus";
 
 export default function AICenter({ activePatient, aiSummary, intelligence, onOpenClinicalHub, workflow: sharedWorkflow }) {
   const { language } = useTranslation();
   const patient = normalizeAiPatient(activePatient);
   const workflow = sharedWorkflow || getWorkflowStatus(patient);
+  const nutritionCareCore = buildNutritionCareCore(patient, workflow);
   const nextAction = getWorkflowNextAction(patient);
   const clinicalBrief = buildClinicalBrief(patient, workflow, aiSummary);
   const support = intelligence;
@@ -54,7 +57,7 @@ export default function AICenter({ activePatient, aiSummary, intelligence, onOpe
     setMessages((currentMessages) => [
       ...currentMessages,
       { role: "Clinician", text: trimmedQuestion },
-      { role: "AI Copilot", text: answerFromAvailableData(trimmedQuestion, patient, workflow, clinicalBrief, missingInfo) },
+      { role: "AI Copilot", text: answerFromAvailableData(trimmedQuestion, patient, workflow, clinicalBrief, missingInfo, nutritionCareCore) },
     ]);
     setQuestion("");
   }
@@ -76,6 +79,13 @@ export default function AICenter({ activePatient, aiSummary, intelligence, onOpe
         />
 
         <ActivePatientBanner patient={patient} onOpenClinicalHub={() => onOpenClinicalHub(patient)} />
+
+        <div className="mb-5">
+          <NutritionCareCorePanel
+            core={nutritionCareCore}
+            onOpenStage={() => onOpenClinicalHub(patient)}
+          />
+        </div>
 
         <section className="mb-5 rounded-[26px] border border-[rgb(185_28_28_/_0.18)] bg-[var(--np-color-danger-bg)] p-5">
           <div className="flex items-start gap-3">
@@ -320,7 +330,7 @@ function buildSuggestedActions(workflow, nextAction) {
   }));
 }
 
-function answerFromAvailableData(question, patient, workflow, clinicalBrief, missingInfo) {
+function answerFromAvailableData(question, patient, workflow, clinicalBrief, missingInfo, nutritionCareCore) {
   const normalizedQuestion = question.toLowerCase();
 
   if (normalizedQuestion.includes("diagnosis")) {
@@ -333,6 +343,30 @@ function answerFromAvailableData(question, patient, workflow, clinicalBrief, mis
 
   if (normalizedQuestion.includes("workflow") || normalizedQuestion.includes("progress")) {
     return `Workflow progress is ${workflow.percent}%. Missing steps: ${workflow.missing.map((step) => step.label).join(", ") || "none"}. Steps needing review: ${workflow.needsReview.map((step) => step.label).join(", ") || "none"}.`;
+  }
+
+  if (normalizedQuestion.includes("journey") || normalizedQuestion.includes("care")) {
+    return `Nutrition Care Journey is ${nutritionCareCore.journey.percent}% complete. Current stage: ${nutritionCareCore.journey.currentStage?.label}. Next action: ${nutritionCareCore.journey.nextExpectedAction?.actionLabel}.`;
+  }
+
+  if (normalizedQuestion.includes("outcome") || normalizedQuestion.includes("response")) {
+    const outcomes = nutritionCareCore.outcomes
+      .filter((outcome) => outcome.status !== "Missing")
+      .slice(0, 4)
+      .map((outcome) => `${outcome.label}: ${outcome.current}`);
+    return outcomes.length ? `Recorded outcome context: ${outcomes.join("; ")}. Clinical decision support only — clinician review and approval required.` : "No recorded outcome measures are available in the current patient context.";
+  }
+
+  if (normalizedQuestion.includes("referral")) {
+    return nutritionCareCore.referrals.length
+      ? nutritionCareCore.referrals.map((referral) => `${referral.destination}: ${referral.status}`).join("; ")
+      : "No nutrition collaboration referrals are recorded for the active patient.";
+  }
+
+  if (normalizedQuestion.includes("iron") || normalizedQuestion.includes("pathway")) {
+    return nutritionCareCore.ironPathway.applicable
+      ? nutritionCareCore.ironPathway.stages.map((stage) => `${stage.label}: ${stage.status}`).join("; ")
+      : "No iron-deficiency pathway context is available for the active patient from the current shared data.";
   }
 
   if (normalizedQuestion.includes("lab")) {

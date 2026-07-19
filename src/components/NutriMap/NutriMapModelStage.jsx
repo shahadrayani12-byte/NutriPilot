@@ -77,7 +77,7 @@ const LAYER_MODEL_ROTATIONS = {
   oral: [0, Math.PI, 0],
 };
 
-export function NutriMapModelStage({ activeLayer = ANATOMY_LAYERS["full-body"], activeLayerId = activeLayer.id, drawerOpen = false, impactEmphasis = {}, selectOrgan, selectMuscleRegion, selectedOrganId, selectedMuscleRegionId = MUSCLE_REGION_DEFAULT_ID, size = "large", systems }) {
+export function NutriMapModelStage({ activeLayer = ANATOMY_LAYERS["full-body"], activeLayerId = activeLayer.id, drawerOpen = false, impactEmphasis = {}, selectOrgan, selectMuscleRegion, selectedOrganId, selectedMuscleRegionId = MUSCLE_REGION_DEFAULT_ID, showFallbackModel = true, size = "large", systems }) {
   const selectedOrgan = systems.find((system) => system.id === selectedOrganId);
   const relationshipIds = selectedOrgan?.connections || [];
   const isPreview = size === "preview";
@@ -103,7 +103,7 @@ export function NutriMapModelStage({ activeLayer = ANATOMY_LAYERS["full-body"], 
   return (
     <div className={`np-nutrimap-stage relative overflow-visible rounded-[32px] border border-[var(--np-color-border-soft)] bg-[radial-gradient(circle_at_center,rgba(95,168,163,0.13),var(--np-color-surface-muted)_48%,white)] ${isPreview ? "h-[440px] md:h-[520px]" : "h-[440px] md:h-[520px] xl:h-[620px]"} p-0`}>
       <StageGuides />
-      <NutriMapModelErrorBoundary fallback={<FallbackBodyMap selectedOrganId={selectedOrganId} selectOrgan={handleOrganSelection} systems={systems} />}>
+      <NutriMapModelErrorBoundary fallback={<StageErrorCard activeLayer={activeLayer} />}>
         <Canvas
           dpr={[1, 1.5]}
           camera={{ fov: 36, near: 0.05, far: 100, position: [0, 0, 6.4] }}
@@ -151,6 +151,7 @@ export function NutriMapModelStage({ activeLayer = ANATOMY_LAYERS["full-body"], 
               selectedOrgan={selectedOrgan}
               selectedOrganId={selectedOrganId}
               selectedMuscleRegionId={selectedMuscleRegionId}
+              showFallbackModel={showFallbackModel}
               systems={systems}
             />
           </Suspense>
@@ -331,35 +332,18 @@ class LayerModelErrorBoundary extends Component {
   }
 }
 
-function FallbackBodyMap({ selectedOrganId, selectOrgan, systems }) {
+function StageErrorCard({ activeLayer }) {
   return (
-    <div className="relative flex h-full min-h-[440px] items-center justify-center p-4">
-      <svg className="h-[82%] max-h-[560px] w-auto" viewBox="0 0 220 420" aria-label="Fallback NutriMap body" role="img">
-        <circle cx="110" cy="45" r="34" fill="none" stroke="var(--np-color-brand)" strokeOpacity="0.22" strokeWidth="6" />
-        <path d="M76 98 C88 78 132 78 144 98 C164 140 160 212 140 258 C130 282 90 282 80 258 C60 212 56 140 76 98Z" fill="var(--np-color-brand)" opacity="0.12" stroke="var(--np-color-brand)" strokeOpacity="0.2" strokeWidth="4" />
-        <path d="M78 118 C38 162 40 226 58 288" stroke="var(--np-color-brand)" strokeWidth="16" strokeLinecap="round" opacity="0.16" />
-        <path d="M142 118 C182 162 180 226 162 288" stroke="var(--np-color-brand)" strokeWidth="16" strokeLinecap="round" opacity="0.16" />
-        <path d="M92 262 C80 318 72 366 68 405" stroke="var(--np-color-brand)" strokeWidth="18" strokeLinecap="round" opacity="0.16" />
-        <path d="M128 262 C140 318 148 366 152 405" stroke="var(--np-color-brand)" strokeWidth="18" strokeLinecap="round" opacity="0.16" />
-      </svg>
-      <div className="absolute inset-0 mx-auto h-[82%] max-h-[560px] w-[300px] max-w-[70%]">
-        {systems.map((system) => (
-          <button
-            aria-label={system.label}
-            aria-pressed={selectedOrganId === system.id}
-            className={`absolute flex h-11 w-11 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full border-2 shadow-[var(--np-shadow-sm)] ${selectedOrganId === system.id ? "border-[var(--np-color-brand)] bg-[var(--np-color-brand)]" : "border-white bg-white"}`}
-            key={system.id}
-            onClick={() => selectOrgan(system.id)}
-            style={{ left: `${system.mapPoint.x}%`, top: `${system.mapPoint.y}%` }}
-            type="button"
-          >
-            <span className={`h-3.5 w-3.5 rounded-full ${selectedOrganId === system.id ? "bg-white" : statusDotClass(system.status)}`} />
-          </button>
-        ))}
+    <div className="flex h-full min-h-[440px] items-center justify-center p-4">
+      <div className="w-[min(420px,88vw)] rounded-[24px] border border-[var(--np-color-border-soft)] bg-white/94 p-5 text-center shadow-[var(--np-shadow-card)]">
+        <p className="text-xs font-extrabold uppercase tracking-[0.14em] text-[var(--np-color-brand)]">
+          Anatomy viewer unavailable
+        </p>
+        <h3 className="mt-2 text-lg font-extrabold text-[var(--np-color-text)]">{activeLayer?.title || "Selected anatomy"}</h3>
+        <p className="mt-2 text-sm font-bold leading-6 text-[var(--np-color-text-muted)]">
+          The selected anatomy model could not be displayed. Use Back to Body Navigator or choose another system.
+        </p>
       </div>
-      <p className="absolute bottom-4 rounded-full border border-[var(--np-color-border-soft)] bg-white/90 px-4 py-2 text-xs font-extrabold text-[var(--np-color-text-muted)] shadow-[var(--np-shadow-sm)]">
-        2D fallback view
-      </p>
     </div>
   );
 }
@@ -379,6 +363,7 @@ function ModelLayerContent({
   selectedOrgan,
   selectedOrganId,
   selectedMuscleRegionId,
+  showFallbackModel,
   systems,
 }) {
   const isBodyNavigatorLayer = activeLayerId === "body-navigator";
@@ -413,7 +398,7 @@ function ModelLayerContent({
   return (
     <>
       <LayerModelErrorBoundary
-        fallback={(
+        fallback={showFallbackModel ? (
           <>
             <AnatomyModel
               activeLayerId="full-body"
@@ -431,6 +416,18 @@ function ModelLayerContent({
               </span>
             </Html>
           </>
+        ) : (
+          <Html center position={[0, 0, 0]} transform={false}>
+            <div className="w-[min(360px,80vw)] rounded-[24px] border border-[var(--np-color-border-soft)] bg-white/94 p-5 text-center shadow-[var(--np-shadow-card)]">
+              <p className="text-xs font-extrabold uppercase tracking-[0.14em] text-[var(--np-color-brand)]">
+                Anatomy model unavailable
+              </p>
+              <h3 className="mt-2 text-lg font-extrabold text-[var(--np-color-text)]">{activeLayer.title || selectedOrgan?.label || "Selected anatomy"}</h3>
+              <p className="mt-2 text-sm font-bold leading-6 text-[var(--np-color-text-muted)]">
+                {fallbackMessage}. Return to Body Navigator or select another system.
+              </p>
+            </div>
+          </Html>
         )}
         activeLayerId={activeLayerId}
         modelPath={modelUrl}

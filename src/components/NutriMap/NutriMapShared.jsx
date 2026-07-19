@@ -64,7 +64,7 @@ export function NutriMapBodyRegion({ active, emphasis = "none", label, position,
 }
 
 export function NutriMapClinicalPanel({ activeImpactId = "", activePatient, bodyNavigatorOverview, compact = false, onBackToBodyNavigator, onCollapse, onClose, onOpenAiCenter, onOpenClinicalHub, onOpenDietPlan, onOpenLabs, onCreateTask, onGenerateReport, selectOrgan, selectMuscleRegion, selectedMuscleRegionId = MUSCLE_REGION_DEFAULT_ID, organSummary, patientWorkflow, system, systems = [], updatePatient }) {
-  const { t } = useTranslation();
+  const { language, t } = useTranslation();
   const [activeTab, setActiveTab] = useState("overview");
   const isBodyNavigator = system.id === "body-navigator";
   const tabs = [
@@ -110,22 +110,21 @@ export function NutriMapClinicalPanel({ activeImpactId = "", activePatient, body
           </div>
         </div>
         <div className="p-4">
-          <section className="rounded-[20px] border border-[var(--np-color-border-soft)] bg-[var(--np-color-surface-muted)] p-4">
+          <section className="rounded-[22px] border border-[var(--np-color-border-soft)] bg-[linear-gradient(135deg,rgba(255,255,255,0.92),rgba(247,243,237,0.82))] p-4 shadow-[var(--np-shadow-sm)]">
             <p className="text-xs font-extrabold uppercase tracking-[0.12em] text-[var(--np-color-brand)]">Body Navigator</p>
             <p className="mt-3 text-sm font-bold leading-6 text-[var(--np-color-text)]">
               Select a body region or system to view its clinical nutrition context.
             </p>
-            <p className="mt-2 text-xs font-bold leading-5 text-[var(--np-color-text-muted)]">
-              This is the neutral landing state. Patient data remains available, but no organ-specific interpretation is shown until a system is selected.
-            </p>
-            <div className="mt-4 grid grid-cols-2 gap-2">
-              <DrawerMetric label="Mapped systems" value={bodyNavigatorOverview?.mappedSystemsCount ?? systems.length} />
-              <DrawerMetric label="Needs review" value={bodyNavigatorOverview?.needsReviewCount ?? 0} />
+            <div className="mt-4 grid grid-cols-1 gap-2 sm:grid-cols-2">
+              <DrawerMetric label="Systems" value={bodyNavigatorOverview?.mappedSystemsCount ?? systems.length} />
+              <DrawerMetric label="Highest risk" value={bodyNavigatorOverview?.highestPriority || "No Data"} />
+              <DrawerMetric label="AI readiness" value={bodyNavigatorOverview?.activeAiState || "Not recorded"} />
+              <DrawerMetric label="Workflow" value={`${Math.max(0, (bodyNavigatorOverview?.mappedSystemsCount || 0) - (bodyNavigatorOverview?.missingDataCount || 0))} systems active`} />
+              <DrawerMetric label="Recent activity" value={bodyNavigatorOverview?.recentUpdate || "Not recorded"} />
               <DrawerMetric label="Missing data" value={bodyNavigatorOverview?.missingDataCount ?? 0} />
-              <DrawerMetric label="Highest priority" value={bodyNavigatorOverview?.highestPriority || "No Data"} />
             </div>
-            <p className="mt-3 text-xs font-bold text-[var(--np-color-text-muted)]">
-              Recent patient update: {bodyNavigatorOverview?.recentUpdate || "Not recorded"}
+            <p className="mt-3 rounded-[14px] border border-white/80 bg-white/72 p-3 text-xs font-bold leading-5 text-[var(--np-color-text-muted)]">
+              Neutral overview only. No organ-specific interpretation is shown until a body system is selected.
             </p>
           </section>
           <section className="mt-4 grid grid-cols-2 gap-2 md:grid-cols-3">
@@ -166,7 +165,7 @@ export function NutriMapClinicalPanel({ activeImpactId = "", activePatient, body
         </div>
         {onBackToBodyNavigator ? (
           <button className="mt-3 min-h-10 rounded-full border border-[var(--np-color-border)] bg-white px-4 py-2 text-xs font-extrabold text-[var(--np-color-brand)] transition hover:border-[var(--np-color-brand)]" onClick={onBackToBodyNavigator} type="button">
-            Back to Body Map
+            {language === "ar" ? "العودة إلى NutriMap" : "Back to NutriMap"}
           </button>
         ) : null}
       </div>
@@ -223,7 +222,7 @@ function DrawerMetric({ label, value }) {
     </div>
   );
 }
-export function NutriMapStage({ activeLayer, activeLayerId, selectedOrganId, selectedMuscleRegionId = MUSCLE_REGION_DEFAULT_ID, drawerOpen = false, impactEmphasis = {}, systems, selectOrgan, selectMuscleRegion, size = "large" }) {
+export function NutriMapStage({ activeLayer, activeLayerId, selectedOrganId, selectedMuscleRegionId = MUSCLE_REGION_DEFAULT_ID, drawerOpen = false, impactEmphasis = {}, systems, selectOrgan, selectMuscleRegion, showFallbackModel = true, size = "large" }) {
   return (
     <NutriMapModelStage
       activeLayer={activeLayer}
@@ -234,6 +233,7 @@ export function NutriMapStage({ activeLayer, activeLayerId, selectedOrganId, sel
       selectMuscleRegion={selectMuscleRegion}
       selectedOrganId={selectedOrganId}
       selectedMuscleRegionId={selectedMuscleRegionId}
+      showFallbackModel={showFallbackModel}
       size={size}
       systems={systems}
     />

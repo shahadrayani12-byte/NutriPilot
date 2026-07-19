@@ -1,0 +1,37 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 600" role="img" aria-labelledby="title desc">
+  <title id="title">Iron-rich foods</title>
+  <desc id="desc">Lean meat, lentils, beans, leafy greens, seeds, and whole grains.</desc>
+  <defs>
+    <linearGradient id="bg" x1="0" x2="1" y1="0" y2="1">
+      <stop offset="0" stop-color="#fff7ed"/>
+      <stop offset="1" stop-color="#f3d0bd"/>
+    </linearGradient>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="18" stdDeviation="18" flood-color="#7f1d1d" flood-opacity=".18"/>
+    </filter>
+  </defs>
+  <rect width="800" height="600" fill="url(#bg)"/>
+  <circle cx="650" cy="85" r="165" fill="#fef3c7" opacity=".75"/>
+  <ellipse cx="406" cy="372" rx="292" ry="127" fill="#fffaf2" filter="url(#shadow)"/>
+  <path d="M128 178c92-56 215-41 293 28 24 21 21 59-9 75L252 367c-62 33-139 5-166-60-19-47 0-102 42-129Z" fill="#9f1239"/>
+  <path d="M157 194c72-33 161-25 222 28" fill="none" stroke="#fecdd3" stroke-width="16" stroke-linecap="round" opacity=".55"/>
+  <circle cx="542" cy="356" r="77" fill="#7c2d12"/>
+  <g fill="#fbbf24">
+    <circle cx="510" cy="326" r="10"/><circle cx="548" cy="312" r="9"/><circle cx="580" cy="341" r="8"/>
+    <circle cx="522" cy="371" r="9"/><circle cx="563" cy="385" r="10"/><circle cx="592" cy="380" r="7"/>
+    <circle cx="536" cy="344" r="8"/><circle cx="566" cy="354" r="9"/>
+  </g>
+  <g fill="#166534">
+    <path d="M266 136c54 6 89 33 103 82-51 1-90-23-103-82Z"/>
+    <path d="M369 133c44 23 65 61 57 113-45-18-68-56-57-113Z"/>
+    <path d="M448 158c31 38 35 80 9 123-34-34-39-76-9-123Z"/>
+  </g>
+  <g fill="#8b5e34">
+    <rect x="318" y="432" width="198" height="30" rx="15"/>
+    <rect x="345" y="478" width="172" height="24" rx="12"/>
+  </g>
+  <g fill="#7f1d1d">
+    <circle cx="645" cy="455" r="25"/><circle cx="686" cy="438" r="20"/><circle cx="696" cy="485" r="24"/>
+    <circle cx="640" cy="502" r="18"/>
+  </g>
+</svg>

@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 600" role="img" aria-labelledby="title desc">
+  <title id="title">Balanced meals for healthy energy</title>
+  <desc id="desc">Balanced meal with grains, vegetables, protein, and fruit.</desc>
+  <defs>
+    <linearGradient id="bg" x1="0" x2="1" y1="0" y2="1"><stop stop-color="#fff7ed"/><stop offset="1" stop-color="#dcfce7"/></linearGradient>
+    <filter id="s"><feDropShadow dx="0" dy="18" stdDeviation="18" flood-color="#14532d" flood-opacity=".15"/></filter>
+  </defs>
+  <rect width="800" height="600" fill="url(#bg)"/>
+  <rect x="115" y="128" width="570" height="345" rx="58" fill="#fff" filter="url(#s)"/>
+  <circle cx="302" cy="302" r="140" fill="#f8fafc" stroke="#e2e8f0" stroke-width="8"/>
+  <path d="M302 164a138 138 0 0 1 119 69l-119 69Z" fill="#fb923c"/>
+  <path d="M421 233a138 138 0 0 1-37 186l-82-117Z" fill="#22c55e"/>
+  <path d="M384 419a138 138 0 0 1-165-16l83-101Z" fill="#facc15"/>
+  <path d="M219 403a138 138 0 0 1 83-239v138Z" fill="#ef4444"/>
+  <rect x="486" y="202" width="118" height="44" rx="22" fill="#fde68a"/>
+  <rect x="486" y="276" width="148" height="44" rx="22" fill="#bbf7d0"/>
+  <rect x="486" y="350" width="97" height="44" rx="22" fill="#fecaca"/>
+</svg>

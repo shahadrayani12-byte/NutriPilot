@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 600" role="img" aria-labelledby="title desc">
+  <title id="title">Balanced plate guide</title>
+  <desc id="desc">Divided plate with vegetables, protein, whole grains, fruit, and water.</desc>
+  <defs>
+    <linearGradient id="bg" x1="0" x2="1" y1="0" y2="1"><stop stop-color="#fff7ed"/><stop offset="1" stop-color="#f8fafc"/></linearGradient>
+    <filter id="shadow"><feDropShadow dx="0" dy="18" stdDeviation="18" flood-color="#334155" flood-opacity=".13"/></filter>
+  </defs>
+  <rect width="800" height="600" fill="url(#bg)"/>
+  <circle cx="358" cy="324" r="211" fill="#ffffff" filter="url(#shadow)"/>
+  <circle cx="358" cy="324" r="174" fill="#f8fafc" stroke="#e2e8f0" stroke-width="10"/>
+  <path d="M358 150a174 174 0 0 1 151 87L358 324Z" fill="#86efac"/>
+  <path d="M509 237a174 174 0 0 1-25 205L358 324Z" fill="#fdba74"/>
+  <path d="M484 442a174 174 0 0 1-240 0l114-118Z" fill="#fef08a"/>
+  <path d="M244 442a174 174 0 0 1-37-170l151 52Z" fill="#fca5a5"/>
+  <path d="M207 272a174 174 0 0 1 151-122v174Z" fill="#bbf7d0"/>
+  <g stroke="#ffffff" stroke-width="8">
+    <path d="M358 324V150M358 324l151-87M358 324l126 118M358 324 244 442M358 324 207 272"/>
+  </g>
+  <rect x="588" y="222" width="86" height="190" rx="28" fill="#e0f2fe" stroke="#93c5fd" stroke-width="9"/>
+  <path d="M596 314h70v67c0 16-13 29-29 29h-12c-16 0-29-13-29-29v-67Z" fill="#7dd3fc"/>
+  <circle cx="607" cy="456" r="35" fill="#ef4444"/>
+  <path d="M607 421c11-21 34-25 51-6-17 9-34 11-51 6Z" fill="#16a34a"/>
+</svg>

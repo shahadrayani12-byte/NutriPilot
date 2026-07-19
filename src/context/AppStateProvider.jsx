@@ -1,6 +1,7 @@
 ﻿import { useEffect, useMemo, useReducer } from "react";
 
 import { managedPatients } from "../data/patientData";
+import { defaultNutriGuideAssignments } from "../data/nutriGuideContent";
 import { buildClinicalDecisionSupport } from "../utils/clinicalDecisionSupport";
 import {
   enrichPatientForIntegration,
@@ -20,9 +21,78 @@ const defaultReports = [
 ];
 
 const defaultSchedule = [
-  { id: "appt-1", patientName: "Sarah Ahmed", time: "08:00", type: "Lab Review", status: "Scheduled" },
-  { id: "appt-2", patientName: "Mohammed Ali", time: "09:00", type: "Follow-up", status: "Completed" },
-  { id: "appt-3", patientName: "Reem Hassan", time: "11:00", type: "Initial Assessment", status: "Scheduled" },
+  {
+    id: "appt-1",
+    patientName: "Sarah Ahmed",
+    patientId: "patient-sarah-ahmed",
+    clinician: "Dr. Shahad",
+    organization: "NutriPilot Demo Hospital",
+    branch: "Main Clinic",
+    department: "Clinical Nutrition",
+    type: "Lab Review",
+    date: "2026-07-19",
+    time: "08:00",
+    endTime: "08:45",
+    duration: 45,
+    location: "Room 2",
+    visitMode: "In-person",
+    purpose: "Iron-related laboratory review",
+    notes: "Review ferritin, hemoglobin, intake, and follow-up timing.",
+    status: "Scheduled",
+    linkedCareStage: "Assessment",
+    createdBy: "Dr. Shahad",
+    createdAt: "2026-07-19T08:00:00.000Z",
+    updatedBy: "Dr. Shahad",
+    updatedAt: "2026-07-19T08:00:00.000Z",
+  },
+  {
+    id: "appt-2",
+    patientName: "Mohammed Ali",
+    patientId: "patient-mohammed-ali",
+    clinician: "Dr. Shahad",
+    organization: "NutriPilot Demo Hospital",
+    branch: "Main Clinic",
+    department: "Clinical Nutrition",
+    type: "Follow-up",
+    date: "2026-07-19",
+    time: "09:00",
+    endTime: "09:30",
+    duration: 30,
+    location: "Telehealth",
+    visitMode: "Virtual",
+    purpose: "Weight management follow-up",
+    notes: "Review adherence and monitoring notes.",
+    status: "Completed",
+    linkedCareStage: "Monitoring & Outcomes",
+    createdBy: "Dr. Shahad",
+    createdAt: "2026-07-19T09:00:00.000Z",
+    updatedBy: "Dr. Shahad",
+    updatedAt: "2026-07-19T09:30:00.000Z",
+  },
+  {
+    id: "appt-3",
+    patientName: "Reem Hassan",
+    patientId: "patient-reem-hassan",
+    clinician: "Dr. Shahad",
+    organization: "NutriPilot Demo Hospital",
+    branch: "Pediatric Clinic",
+    department: "Clinical Nutrition",
+    type: "Initial Assessment",
+    date: "2026-07-19",
+    time: "11:00",
+    endTime: "11:40",
+    duration: 40,
+    location: "Room 4",
+    visitMode: "In-person",
+    purpose: "Nutrition assessment and growth monitoring",
+    notes: "Review vitamin D context and dietary intake.",
+    status: "Scheduled",
+    linkedCareStage: "Screening",
+    createdBy: "Dr. Shahad",
+    createdAt: "2026-07-19T11:00:00.000Z",
+    updatedBy: "Dr. Shahad",
+    updatedAt: "2026-07-19T11:00:00.000Z",
+  },
 ];
 
 function createInitialState() {
@@ -43,8 +113,10 @@ function createInitialState() {
     },
     notifications: activePatient ? mergeByTitle(generatePatientNotifications(activePatient), intelligence?.notifications || []) : [],
     patients,
+    educationAssignments: defaultNutriGuideAssignments,
     reports: defaultReports,
     schedule: defaultSchedule,
+    savedEducationContentIds: [],
     tasks: activePatient ? generateWorkflowTasks(activePatient) : [],
     workflowByPatientId: {},
   };
@@ -163,6 +235,46 @@ function appStateReducer(state, action) {
     };
   }
 
+  if (action.type === "DELETE_TASK") {
+    return {
+      ...state,
+      tasks: state.tasks.filter((task) => task.id !== action.taskId),
+    };
+  }
+
+  if (action.type === "ADD_EDUCATION_ASSIGNMENTS") {
+    return {
+      ...state,
+      educationAssignments: mergeById(action.assignments, state.educationAssignments || []),
+    };
+  }
+
+  if (action.type === "UPDATE_EDUCATION_ASSIGNMENT") {
+    return {
+      ...state,
+      educationAssignments: (state.educationAssignments || []).map((assignment) =>
+        assignment.id === action.assignmentId ? { ...assignment, ...action.updates } : assignment,
+      ),
+    };
+  }
+
+  if (action.type === "TOGGLE_SAVED_EDUCATION") {
+    const currentIds = state.savedEducationContentIds || [];
+    const isSaved = currentIds.includes(action.contentId);
+
+    return {
+      ...state,
+      educationAssignments: (state.educationAssignments || []).map((assignment) =>
+        assignment.contentId === action.contentId && assignment.patientId === state.activePatientId
+          ? { ...assignment, saved: !isSaved }
+          : assignment,
+      ),
+      savedEducationContentIds: isSaved
+        ? currentIds.filter((contentId) => contentId !== action.contentId)
+        : [action.contentId, ...currentIds],
+    };
+  }
+
   if (action.type === "ARCHIVE_NOTIFICATION") {
     return {
       ...state,
@@ -183,8 +295,24 @@ function appStateReducer(state, action) {
     return {
       ...state,
       schedule: state.schedule.map((appointment) =>
-        appointment.id === action.appointmentId ? { ...appointment, ...action.updates } : appointment,
+        appointment.id === action.appointmentId
+          ? { ...appointment, ...action.updates, updatedAt: action.updatedAt || new Date().toISOString(), updatedBy: action.updatedBy || "Dr. Shahad" }
+          : appointment,
       ),
+    };
+  }
+
+  if (action.type === "ADD_APPOINTMENT") {
+    return {
+      ...state,
+      schedule: [action.appointment, ...state.schedule],
+    };
+  }
+
+  if (action.type === "DELETE_APPOINTMENT") {
+    return {
+      ...state,
+      schedule: state.schedule.filter((appointment) => appointment.id !== action.appointmentId),
     };
   }
 
@@ -225,8 +353,10 @@ export function AppStateProvider({ children }) {
         activePatientOverride: state.activePatientOverride,
         aiSummary: state.aiSummary,
         notifications: state.notifications,
+        educationAssignments: state.educationAssignments,
         reports: state.reports,
         schedule: state.schedule,
+        savedEducationContentIds: state.savedEducationContentIds,
         tasks: state.tasks,
         patients: state.patients,
         workflowByPatientId: state.workflowByPatientId,
@@ -242,13 +372,22 @@ export function AppStateProvider({ children }) {
       completeWorkflowStep: (stepId, patient = activePatient) =>
         dispatch({ type: "COMPLETE_WORKFLOW_STEP", patientId: patient?.id || activePatient?.id, stepId }),
       dispatch,
+      educationAssignments: state.educationAssignments || [],
       notifications: state.notifications,
       patients: patientsWithWorkflow,
       reports: state.reports,
       schedule: state.schedule,
       intelligence,
+      addAppointment: (appointment) => dispatch({ type: "ADD_APPOINTMENT", appointment }),
+      deleteAppointment: (appointmentId) => dispatch({ type: "DELETE_APPOINTMENT", appointmentId }),
       setActivePatient: (patient) => dispatch({ type: "SET_ACTIVE_PATIENT", patient }),
       tasks: state.tasks,
+      deleteTask: (taskId) => dispatch({ type: "DELETE_TASK", taskId }),
+      savedEducationContentIds: state.savedEducationContentIds || [],
+      addEducationAssignments: (assignments) => dispatch({ type: "ADD_EDUCATION_ASSIGNMENTS", assignments }),
+      toggleSavedEducation: (contentId) => dispatch({ type: "TOGGLE_SAVED_EDUCATION", contentId }),
+      updateEducationAssignment: (assignmentId, updates) => dispatch({ type: "UPDATE_EDUCATION_ASSIGNMENT", assignmentId, updates }),
+      updateAppointment: (appointmentId, updates) => dispatch({ type: "UPDATE_APPOINTMENT", appointmentId, updates }),
       updatePatient: (patient) => dispatch({ type: "UPDATE_PATIENT", patient }),
       workflow,
     }),
