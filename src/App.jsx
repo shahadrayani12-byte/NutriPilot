@@ -1,4 +1,5 @@
 ﻿import { useEffect, useState } from "react";
+import { Routes, Route } from "react-router-dom";
 import {
   Activity,
   LayoutDashboard,
@@ -30,6 +31,7 @@ import InboxCenter from "./pages/InboxCenter";
 import ScheduleCenter from "./pages/ScheduleCenter";
 import TaskCommandCenter from "./pages/TaskCommandCenter";
 import NutriGuideCenter from "./pages/NutriGuideCenter";
+import PatientLoginPage from "./patient-portal/pages/PatientLoginPage";
 import { AppStateProvider } from "./context/AppStateProvider";
 import { PatientProvider } from "./context/PatientContext";
 import { useAppState } from "./context/useAppState";
@@ -40,7 +42,10 @@ export default function App() {
     <I18nProvider>
       <AppStateProvider>
         <PatientProvider>
-          <AppShell />
+          <Routes>
+            <Route path="/patient/login" element={<PatientLoginPage />} />
+            <Route path="*" element={<AppShell />} />
+          </Routes>
         </PatientProvider>
       </AppStateProvider>
     </I18nProvider>
